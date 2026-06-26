@@ -1,0 +1,19 @@
+# ─── Fase B-1: Generación de datos sintéticos ───────────────────────────────
+# El generador (synthetic_generator.py) usa SOLO la librería estándar de Python.
+# No requiere nada para generar las familias.
+
+# ─── Carga a la BD ──────────────────────────────────────────────────────────
+requests>=2.31         # load_to_bd.py  (vía API captura-completa) — RECOMENDADO
+psycopg2-binary>=2.9   # load_to_bd_sql.py (carga directa a PostgreSQL) — respaldo
+
+# ─── Fases B-2 a B-6: ETL + modelo de riesgo (notebook) ─────────────────────
+pandas>=2.0
+numpy>=1.24
+scikit-learn>=1.3
+xgboost>=2.0
+seaborn>=0.12
+matplotlib>=3.7
+jupyter>=1.0
+
+# Opcional — escalado estadístico adicional del dataset (no obligatorio):
+# sdv>=1.9
