@@ -1,0 +1,19 @@
+# Subcomponente C - Motor de Busqueda (TF-IDF + BM25) con Evaluacion IR
+# Entorno: C:\Users\minis\.venvs\sums-mineria  (NO instalar aparte)
+#
+# spaCy + modelo en espanol -> lematizacion del pipeline (Lab 1)
+spacy>=3.8
+# El modelo se instala con: python -m spacy download es_core_news_sm
+# nltk SnowballStemmer -> SOLO para la comparacion stemming vs lematizacion
+nltk>=3.8
+# numpy / pandas -> vectores y tablas de metricas
+numpy
+pandas
+# scikit-learn -> SOLO verificacion del TF-IDF (TfidfVectorizer), no la logica
+scikit-learn
+# graficos de la comparacion (curvas y barras)
+matplotlib
+seaborn
+# entregable academico
+jupyter
+nbconvert

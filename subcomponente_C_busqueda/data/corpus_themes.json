@@ -1,0 +1,668 @@
+{
+  "n001": [
+    "vivienda",
+    "vacunacion"
+  ],
+  "n002": [
+    "adulto_mayor",
+    "agua"
+  ],
+  "n003": [
+    "agua",
+    "nutricion"
+  ],
+  "n004": [
+    "adulto_mayor",
+    "vector"
+  ],
+  "n005": [
+    "cronica",
+    "vector"
+  ],
+  "n006": [
+    "embarazo",
+    "agua"
+  ],
+  "n007": [
+    "embarazo",
+    "vacunacion",
+    "vector"
+  ],
+  "n008": [
+    "agua",
+    "vacunacion",
+    "vector"
+  ],
+  "n009": [
+    "vivienda",
+    "nutricion"
+  ],
+  "n010": [
+    "vector",
+    "vacunacion"
+  ],
+  "n011": [
+    "embarazo",
+    "nutricion",
+    "adulto_mayor"
+  ],
+  "n012": [
+    "cronica",
+    "toxico"
+  ],
+  "n013": [
+    "embarazo",
+    "vivienda"
+  ],
+  "n014": [
+    "vacunacion",
+    "agua",
+    "toxico"
+  ],
+  "n015": [
+    "toxico",
+    "cronica",
+    "adulto_mayor"
+  ],
+  "n016": [
+    "vector",
+    "adulto_mayor",
+    "cronica"
+  ],
+  "n017": [
+    "vivienda",
+    "agua"
+  ],
+  "n018": [
+    "vector",
+    "adulto_mayor"
+  ],
+  "n019": [
+    "adulto_mayor",
+    "vivienda",
+    "embarazo"
+  ],
+  "n020": [
+    "vacunacion",
+    "vector"
+  ],
+  "n021": [
+    "adulto_mayor",
+    "cronica",
+    "vacunacion"
+  ],
+  "n022": [
+    "embarazo",
+    "cronica"
+  ],
+  "n023": [
+    "toxico",
+    "vivienda",
+    "adulto_mayor"
+  ],
+  "n024": [
+    "agua",
+    "adulto_mayor"
+  ],
+  "n025": [
+    "cronica",
+    "toxico"
+  ],
+  "n026": [
+    "nutricion",
+    "adulto_mayor",
+    "embarazo"
+  ],
+  "n027": [
+    "agua",
+    "nutricion",
+    "adulto_mayor"
+  ],
+  "n028": [
+    "nutricion",
+    "vivienda"
+  ],
+  "n029": [
+    "vivienda",
+    "embarazo"
+  ],
+  "n030": [
+    "toxico",
+    "nutricion",
+    "vacunacion"
+  ],
+  "n031": [
+    "toxico",
+    "vector"
+  ],
+  "n032": [
+    "embarazo",
+    "vector",
+    "nutricion"
+  ],
+  "n033": [
+    "embarazo",
+    "agua",
+    "toxico"
+  ],
+  "n034": [
+    "vector",
+    "cronica"
+  ],
+  "n035": [
+    "toxico",
+    "agua"
+  ],
+  "n036": [
+    "nutricion",
+    "cronica"
+  ],
+  "n037": [
+    "vector",
+    "vivienda"
+  ],
+  "n038": [
+    "vacunacion",
+    "toxico",
+    "cronica"
+  ],
+  "n039": [
+    "vacunacion",
+    "nutricion"
+  ],
+  "n040": [
+    "embarazo",
+    "vivienda"
+  ],
+  "n041": [
+    "vivienda",
+    "agua"
+  ],
+  "n042": [
+    "vector",
+    "agua"
+  ],
+  "n043": [
+    "vector",
+    "embarazo"
+  ],
+  "n044": [
+    "vacunacion",
+    "vector"
+  ],
+  "n045": [
+    "agua",
+    "vivienda",
+    "nutricion"
+  ],
+  "n046": [
+    "adulto_mayor",
+    "vacunacion"
+  ],
+  "n047": [
+    "embarazo",
+    "vacunacion"
+  ],
+  "n048": [
+    "adulto_mayor",
+    "vivienda",
+    "embarazo"
+  ],
+  "n049": [
+    "agua",
+    "adulto_mayor",
+    "embarazo"
+  ],
+  "n050": [
+    "embarazo",
+    "nutricion"
+  ],
+  "n051": [
+    "vivienda",
+    "agua",
+    "embarazo"
+  ],
+  "n052": [
+    "cronica",
+    "vacunacion",
+    "agua"
+  ],
+  "n053": [
+    "agua",
+    "adulto_mayor"
+  ],
+  "n054": [
+    "adulto_mayor",
+    "cronica",
+    "nutricion"
+  ],
+  "n055": [
+    "embarazo",
+    "nutricion"
+  ],
+  "n056": [
+    "cronica",
+    "nutricion",
+    "vector"
+  ],
+  "n057": [
+    "embarazo",
+    "vector"
+  ],
+  "n058": [
+    "vector",
+    "vivienda"
+  ],
+  "n059": [
+    "embarazo",
+    "vacunacion",
+    "vector"
+  ],
+  "n060": [
+    "embarazo",
+    "vacunacion",
+    "vector"
+  ],
+  "n061": [
+    "adulto_mayor",
+    "embarazo",
+    "vivienda"
+  ],
+  "n062": [
+    "agua",
+    "vector"
+  ],
+  "n063": [
+    "vector",
+    "nutricion"
+  ],
+  "n064": [
+    "adulto_mayor",
+    "nutricion"
+  ],
+  "n065": [
+    "embarazo",
+    "agua",
+    "adulto_mayor"
+  ],
+  "n066": [
+    "vector",
+    "vacunacion",
+    "toxico"
+  ],
+  "n067": [
+    "vacunacion",
+    "vector"
+  ],
+  "n068": [
+    "nutricion",
+    "vector",
+    "toxico"
+  ],
+  "n069": [
+    "toxico",
+    "nutricion",
+    "vacunacion"
+  ],
+  "n070": [
+    "agua",
+    "nutricion",
+    "embarazo"
+  ],
+  "n071": [
+    "vivienda",
+    "nutricion"
+  ],
+  "n072": [
+    "vector",
+    "nutricion",
+    "embarazo"
+  ],
+  "n073": [
+    "vivienda",
+    "agua"
+  ],
+  "n074": [
+    "vivienda",
+    "nutricion",
+    "vector"
+  ],
+  "n075": [
+    "toxico",
+    "vector",
+    "adulto_mayor"
+  ],
+  "n076": [
+    "vacunacion",
+    "nutricion",
+    "vector"
+  ],
+  "n077": [
+    "toxico",
+    "agua",
+    "embarazo"
+  ],
+  "n078": [
+    "adulto_mayor",
+    "agua",
+    "toxico"
+  ],
+  "n079": [
+    "agua",
+    "vector"
+  ],
+  "n080": [
+    "vector",
+    "vivienda",
+    "agua"
+  ],
+  "n081": [
+    "toxico",
+    "vivienda",
+    "cronica"
+  ],
+  "n082": [
+    "toxico",
+    "nutricion"
+  ],
+  "n083": [
+    "vector",
+    "embarazo"
+  ],
+  "n084": [
+    "adulto_mayor",
+    "vivienda"
+  ],
+  "n085": [
+    "vector",
+    "cronica"
+  ],
+  "n086": [
+    "vector",
+    "embarazo",
+    "agua"
+  ],
+  "n087": [
+    "vector",
+    "vacunacion",
+    "adulto_mayor"
+  ],
+  "n088": [
+    "embarazo",
+    "nutricion"
+  ],
+  "n089": [
+    "nutricion",
+    "vivienda"
+  ],
+  "n090": [
+    "toxico",
+    "agua"
+  ],
+  "n091": [
+    "embarazo",
+    "cronica",
+    "vacunacion"
+  ],
+  "n092": [
+    "vivienda",
+    "vacunacion"
+  ],
+  "n093": [
+    "agua",
+    "nutricion"
+  ],
+  "n094": [
+    "embarazo",
+    "vector"
+  ],
+  "n095": [
+    "vivienda",
+    "vector",
+    "toxico"
+  ],
+  "n096": [
+    "cronica",
+    "vector",
+    "agua"
+  ],
+  "n097": [
+    "toxico",
+    "vector",
+    "adulto_mayor"
+  ],
+  "n098": [
+    "vacunacion",
+    "toxico"
+  ],
+  "n099": [
+    "vivienda",
+    "toxico",
+    "vector"
+  ],
+  "n100": [
+    "vacunacion",
+    "embarazo",
+    "cronica"
+  ],
+  "n101": [
+    "agua",
+    "nutricion"
+  ],
+  "n102": [
+    "toxico",
+    "adulto_mayor"
+  ],
+  "n103": [
+    "nutricion",
+    "vector",
+    "embarazo"
+  ],
+  "n104": [
+    "adulto_mayor",
+    "embarazo",
+    "nutricion"
+  ],
+  "n105": [
+    "vacunacion",
+    "adulto_mayor",
+    "agua"
+  ],
+  "n106": [
+    "nutricion",
+    "adulto_mayor"
+  ],
+  "n107": [
+    "agua",
+    "nutricion",
+    "cronica"
+  ],
+  "n108": [
+    "adulto_mayor",
+    "cronica"
+  ],
+  "n109": [
+    "cronica",
+    "toxico",
+    "vivienda"
+  ],
+  "n110": [
+    "toxico",
+    "embarazo",
+    "agua"
+  ],
+  "n111": [
+    "vector",
+    "toxico"
+  ],
+  "n112": [
+    "cronica",
+    "vacunacion"
+  ],
+  "n113": [
+    "nutricion",
+    "vector",
+    "adulto_mayor"
+  ],
+  "n114": [
+    "vivienda",
+    "agua",
+    "vector"
+  ],
+  "n115": [
+    "nutricion",
+    "cronica"
+  ],
+  "n116": [
+    "vector",
+    "toxico"
+  ],
+  "n117": [
+    "nutricion",
+    "vacunacion"
+  ],
+  "n118": [
+    "vacunacion",
+    "nutricion"
+  ],
+  "n119": [
+    "cronica",
+    "vacunacion"
+  ],
+  "n120": [
+    "vacunacion",
+    "adulto_mayor"
+  ],
+  "n121": [
+    "vector",
+    "vacunacion",
+    "toxico"
+  ],
+  "n122": [
+    "vector",
+    "embarazo"
+  ],
+  "n123": [
+    "nutricion",
+    "vivienda"
+  ],
+  "n124": [
+    "toxico",
+    "adulto_mayor"
+  ],
+  "n125": [
+    "agua",
+    "toxico",
+    "cronica"
+  ],
+  "n126": [
+    "embarazo",
+    "vector"
+  ],
+  "n127": [
+    "toxico",
+    "agua"
+  ],
+  "n128": [
+    "vector",
+    "vivienda"
+  ],
+  "n129": [
+    "nutricion",
+    "embarazo"
+  ],
+  "n130": [
+    "nutricion",
+    "vacunacion"
+  ],
+  "n131": [
+    "toxico",
+    "agua",
+    "vivienda"
+  ],
+  "n132": [
+    "adulto_mayor",
+    "vector"
+  ],
+  "n133": [
+    "agua",
+    "cronica",
+    "nutricion"
+  ],
+  "n134": [
+    "toxico",
+    "nutricion",
+    "adulto_mayor"
+  ],
+  "n135": [
+    "agua",
+    "vacunacion"
+  ],
+  "n136": [
+    "vivienda",
+    "vacunacion",
+    "embarazo"
+  ],
+  "n137": [
+    "toxico",
+    "adulto_mayor"
+  ],
+  "n138": [
+    "toxico",
+    "embarazo",
+    "vector"
+  ],
+  "n139": [
+    "vector",
+    "vivienda"
+  ],
+  "n140": [
+    "cronica",
+    "toxico",
+    "vivienda"
+  ],
+  "n141": [
+    "toxico",
+    "agua"
+  ],
+  "n142": [
+    "vector",
+    "cronica"
+  ],
+  "n143": [
+    "vector",
+    "agua",
+    "adulto_mayor"
+  ],
+  "n144": [
+    "adulto_mayor",
+    "vivienda",
+    "vacunacion"
+  ],
+  "n145": [
+    "vector",
+    "agua"
+  ],
+  "n146": [
+    "vivienda",
+    "adulto_mayor",
+    "cronica"
+  ],
+  "n147": [
+    "cronica",
+    "nutricion",
+    "vacunacion"
+  ],
+  "n148": [
+    "agua",
+    "vector"
+  ],
+  "n149": [
+    "nutricion",
+    "toxico"
+  ],
+  "n150": [
+    "toxico",
+    "vacunacion"
+  ]
+}

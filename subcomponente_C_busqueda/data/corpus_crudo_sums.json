@@ -1,0 +1,752 @@
+[
+  {
+    "id": "n001",
+    "titulo": "Nota de visita 001 - vivienda",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. casa de adobe en mal estado, paredes con humedad y hacinamiento. falta refuerzo de tetanos en mujer gestante."
+  },
+  {
+    "id": "n002",
+    "titulo": "Nota de visita 002 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. persona mayor con caidas frecuentes y riesgo de fractura. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n003",
+    "titulo": "Nota de visita 003 - agua",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. servicio de agua intermitente; almacenan en tambos sin tapa. familia con inseguridad alimentaria, dos menores con peso bajo."
+  },
+  {
+    "id": "n004",
+    "titulo": "Nota de visita 004 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. persona de 78 anos con artritis, requiere visita domiciliaria periodica. paciente con fiebre, dolor de cuerpo y sospecha de dengue."
+  },
+  {
+    "id": "n005",
+    "titulo": "Nota de visita 005 - cronica",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. diabetico que abandono el tratamiento por falta de medicamento. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n006",
+    "titulo": "Nota de visita 006 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. embarazada sin control prenatal en el primer trimestre. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n007",
+    "titulo": "Nota de visita 007 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. embarazada sin control prenatal en el primer trimestre. menor sin vacuna contra influenza ni refuerzo pendiente. patio con cacharros y llantas que acumulan agua, criadero de mosco."
+  },
+  {
+    "id": "n008",
+    "titulo": "Nota de visita 008 - agua",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. cartilla de vacunacion atrasada, faltan dosis de sarampion. patio con cacharros y llantas que acumulan agua, criadero de mosco."
+  },
+  {
+    "id": "n009",
+    "titulo": "Nota de visita 009 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n010",
+    "titulo": "Nota de visita 010 - vector",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. cartilla de vacunacion atrasada, faltan dosis de sarampion."
+  },
+  {
+    "id": "n011",
+    "titulo": "Nota de visita 011 - embarazo",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. mujer embarazada sin consultas prenatales ni acido folico. menor de 3 anos con bajo peso para la edad. persona mayor con caidas frecuentes y riesgo de fractura."
+  },
+  {
+    "id": "n012",
+    "titulo": "Nota de visita 012 - cronica",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. hipertension no controlada, no acude a sus citas de seguimiento. consumo nocivo de alcohol que afecta la dinamica familiar."
+  },
+  {
+    "id": "n013",
+    "titulo": "Nota de visita 013 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. vivienda con piso de tierra y techo de lamina."
+  },
+  {
+    "id": "n014",
+    "titulo": "Nota de visita 014 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. esquema de inmunizacion incompleto, se agenda visita de seguimiento. no cuentan con agua potable, hierven el agua antes de beberla. tabaquismo activo en dos integrantes del nucleo familiar."
+  },
+  {
+    "id": "n015",
+    "titulo": "Nota de visita 015 - toxico",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. tabaquismo activo en dos integrantes del nucleo familiar. paciente con hipertension arterial y sobrepeso, sin tratamiento. persona mayor con caidas frecuentes y riesgo de fractura."
+  },
+  {
+    "id": "n016",
+    "titulo": "Nota de visita 016 - vector",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. caso sospechoso de dengue con fiebre alta en un menor. persona de 78 anos con artritis, requiere visita domiciliaria periodica. paciente cronico con diabetes e hipertension, requiere control mensual."
+  },
+  {
+    "id": "n017",
+    "titulo": "Nota de visita 017 - vivienda",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. casa de adobe en mal estado, paredes con humedad y hacinamiento. servicio de agua intermitente; almacenan en tambos sin tapa."
+  },
+  {
+    "id": "n018",
+    "titulo": "Nota de visita 018 - vector",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. adulto mayor postrado en cama que depende de cuidador."
+  },
+  {
+    "id": "n019",
+    "titulo": "Nota de visita 019 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. adulto mayor que vive solo, con movilidad reducida. techo de carton y lamina con goteras durante la temporada de lluvias. mujer embarazada sin consultas prenatales ni acido folico."
+  },
+  {
+    "id": "n020",
+    "titulo": "Nota de visita 020 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. falta refuerzo de tetanos en mujer gestante. paciente con fiebre, dolor de cuerpo y sospecha de dengue."
+  },
+  {
+    "id": "n021",
+    "titulo": "Nota de visita 021 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. adulto mayor que vive solo, con movilidad reducida. diabetico que abandono el tratamiento por falta de medicamento. esquema de inmunizacion incompleto, se agenda visita de seguimiento."
+  },
+  {
+    "id": "n022",
+    "titulo": "Nota de visita 022 - embarazo",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. embarazada en tercer trimestre sin ultrasonido ni control medico. paciente cronico con diabetes e hipertension, requiere control mensual."
+  },
+  {
+    "id": "n023",
+    "titulo": "Nota de visita 023 - toxico",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo. persona de 78 anos con artritis, requiere visita domiciliaria periodica."
+  },
+  {
+    "id": "n024",
+    "titulo": "Nota de visita 024 - agua",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. viviendas sin agua entubada que dependen de pipas una vez por semana. adulto mayor que vive solo, con movilidad reducida."
+  },
+  {
+    "id": "n025",
+    "titulo": "Nota de visita 025 - cronica",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. paciente cronico con diabetes e hipertension, requiere control mensual. tabaquismo activo en dos integrantes del nucleo familiar."
+  },
+  {
+    "id": "n026",
+    "titulo": "Nota de visita 026 - nutricion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. nino con desnutricion cronica y talla baja para su edad. adulto mayor postrado en cama que depende de cuidador. mujer embarazada sin consultas prenatales ni acido folico."
+  },
+  {
+    "id": "n027",
+    "titulo": "Nota de visita 027 - agua",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. sin agua entubada, acarrean agua del pozo comunitario. nino con desnutricion cronica y talla baja para su edad. adulto mayor que vive solo, con movilidad reducida."
+  },
+  {
+    "id": "n028",
+    "titulo": "Nota de visita 028 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. menor de 3 anos con bajo peso para la edad. vivienda con piso de tierra y techo de lamina."
+  },
+  {
+    "id": "n029",
+    "titulo": "Nota de visita 029 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. vivienda con piso de tierra y techo de lamina. embarazada en tercer trimestre sin ultrasonido ni control medico."
+  },
+  {
+    "id": "n030",
+    "titulo": "Nota de visita 030 - toxico",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. tabaquismo activo en dos integrantes del nucleo familiar. familia con inseguridad alimentaria, dos menores con peso bajo. esquema de inmunizacion incompleto, se agenda visita de seguimiento."
+  },
+  {
+    "id": "n031",
+    "titulo": "Nota de visita 031 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. tabaquismo activo en dos integrantes del nucleo familiar. criaderos de mosco en el patio; riesgo de dengue."
+  },
+  {
+    "id": "n032",
+    "titulo": "Nota de visita 032 - embarazo",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. gestante con embarazo de alto riesgo, requiere referencia a hospital. criaderos de mosco en el patio; riesgo de dengue. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n033",
+    "titulo": "Nota de visita 033 - embarazo",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. servicio de agua intermitente; almacenan en tambos sin tapa. alcoholismo en el hogar asociado a violencia intrafamiliar."
+  },
+  {
+    "id": "n034",
+    "titulo": "Nota de visita 034 - vector",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. abundancia de larvas de mosquito en cacharros, foco de dengue. hipertension no controlada, no acude a sus citas de seguimiento."
+  },
+  {
+    "id": "n035",
+    "titulo": "Nota de visita 035 - toxico",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. jefe de familia con consumo de alcohol frecuente. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion."
+  },
+  {
+    "id": "n036",
+    "titulo": "Nota de visita 036 - nutricion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. lactante con bajo peso y signos de desnutricion infantil. hipertension no controlada, no acude a sus citas de seguimiento."
+  },
+  {
+    "id": "n037",
+    "titulo": "Nota de visita 037 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. caso sospechoso de dengue con fiebre alta en un menor. vivienda sin drenaje, letrina en mal estado en el patio trasero."
+  },
+  {
+    "id": "n038",
+    "titulo": "Nota de visita 038 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. menor sin vacuna contra influenza ni refuerzo pendiente. alcoholismo en el hogar asociado a violencia intrafamiliar. hipertension no controlada, no acude a sus citas de seguimiento."
+  },
+  {
+    "id": "n039",
+    "titulo": "Nota de visita 039 - vacunacion",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. esquema de vacunacion incompleto en dos menores. familia con inseguridad alimentaria, dos menores con peso bajo."
+  },
+  {
+    "id": "n040",
+    "titulo": "Nota de visita 040 - embarazo",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. embarazada sin control prenatal en el primer trimestre. techo de carton y lamina con goteras durante la temporada de lluvias."
+  },
+  {
+    "id": "n041",
+    "titulo": "Nota de visita 041 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. casa de adobe en mal estado, paredes con humedad y hacinamiento. sin agua entubada, acarrean agua del pozo comunitario."
+  },
+  {
+    "id": "n042",
+    "titulo": "Nota de visita 042 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. servicio de agua intermitente; almacenan en tambos sin tapa."
+  },
+  {
+    "id": "n043",
+    "titulo": "Nota de visita 043 - vector",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. abundancia de larvas de mosquito en cacharros, foco de dengue. gestante de 19 anos, primer embarazo, atencion en el hogar."
+  },
+  {
+    "id": "n044",
+    "titulo": "Nota de visita 044 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. falta refuerzo de tetanos en mujer gestante. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n045",
+    "titulo": "Nota de visita 045 - agua",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. techo de carton y lamina con goteras durante la temporada de lluvias. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n046",
+    "titulo": "Nota de visita 046 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. persona de 78 anos con artritis, requiere visita domiciliaria periodica. cartilla de vacunacion atrasada, faltan dosis de sarampion."
+  },
+  {
+    "id": "n047",
+    "titulo": "Nota de visita 047 - embarazo",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. menor sin vacuna contra influenza ni refuerzo pendiente."
+  },
+  {
+    "id": "n048",
+    "titulo": "Nota de visita 048 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. persona mayor con caidas frecuentes y riesgo de fractura. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo. embarazada sin control prenatal en el primer trimestre."
+  },
+  {
+    "id": "n049",
+    "titulo": "Nota de visita 049 - agua",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. persona de 78 anos con artritis, requiere visita domiciliaria periodica. mujer embarazada sin consultas prenatales ni acido folico."
+  },
+  {
+    "id": "n050",
+    "titulo": "Nota de visita 050 - embarazo",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. mujer embarazada sin consultas prenatales ni acido folico. familia con inseguridad alimentaria, dos menores con peso bajo."
+  },
+  {
+    "id": "n051",
+    "titulo": "Nota de visita 051 - vivienda",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. vivienda sin drenaje, letrina en mal estado en el patio trasero. no cuentan con agua potable, hierven el agua antes de beberla. embarazada sin control prenatal en el primer trimestre."
+  },
+  {
+    "id": "n052",
+    "titulo": "Nota de visita 052 - cronica",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. hipertension no controlada, no acude a sus citas de seguimiento. esquema de inmunizacion incompleto, se agenda visita de seguimiento. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n053",
+    "titulo": "Nota de visita 053 - agua",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. servicio de agua intermitente; almacenan en tambos sin tapa. persona mayor con caidas frecuentes y riesgo de fractura."
+  },
+  {
+    "id": "n054",
+    "titulo": "Nota de visita 054 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. persona de 78 anos con artritis, requiere visita domiciliaria periodica. adulto mayor con diabetes sin control glucemico. nino con desnutricion cronica y talla baja para su edad."
+  },
+  {
+    "id": "n055",
+    "titulo": "Nota de visita 055 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n056",
+    "titulo": "Nota de visita 056 - cronica",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. paciente con hipertension arterial y sobrepeso, sin tratamiento. dieta baja en proteina; consumo de frutas y verduras menor a tres dias por semana. paciente con fiebre, dolor de cuerpo y sospecha de dengue."
+  },
+  {
+    "id": "n057",
+    "titulo": "Nota de visita 057 - embarazo",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n058",
+    "titulo": "Nota de visita 058 - vector",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. casa de adobe en mal estado, paredes con humedad y hacinamiento."
+  },
+  {
+    "id": "n059",
+    "titulo": "Nota de visita 059 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. gestante de 19 anos, primer embarazo, atencion en el hogar. falta refuerzo de tetanos en mujer gestante. criaderos de mosco en el patio; riesgo de dengue."
+  },
+  {
+    "id": "n060",
+    "titulo": "Nota de visita 060 - embarazo",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. embarazada sin control prenatal en el primer trimestre. cartilla de vacunacion atrasada, faltan dosis de sarampion. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n061",
+    "titulo": "Nota de visita 061 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. adulto mayor que vive solo, con movilidad reducida. mujer embarazada sin consultas prenatales ni acido folico. casa de adobe en mal estado, paredes con humedad y hacinamiento."
+  },
+  {
+    "id": "n062",
+    "titulo": "Nota de visita 062 - agua",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. no cuentan con agua potable, hierven el agua antes de beberla. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n063",
+    "titulo": "Nota de visita 063 - vector",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. abundancia de larvas de mosquito en cacharros, foco de dengue. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n064",
+    "titulo": "Nota de visita 064 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. anciano que vive solo sin redes de apoyo cercanas. lactante con bajo peso y signos de desnutricion infantil."
+  },
+  {
+    "id": "n065",
+    "titulo": "Nota de visita 065 - embarazo",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. mujer embarazada sin consultas prenatales ni acido folico. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. anciano que vive solo sin redes de apoyo cercanas."
+  },
+  {
+    "id": "n066",
+    "titulo": "Nota de visita 066 - vector",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. caso sospechoso de dengue con fiebre alta en un menor. falta refuerzo de tetanos en mujer gestante. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n067",
+    "titulo": "Nota de visita 067 - vacunacion",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. esquema de inmunizacion incompleto, se agenda visita de seguimiento. criaderos de mosco en el patio; riesgo de dengue."
+  },
+  {
+    "id": "n068",
+    "titulo": "Nota de visita 068 - nutricion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. familia con inseguridad alimentaria, dos menores con peso bajo. patio con cacharros y llantas que acumulan agua, criadero de mosco. consumo nocivo de alcohol que afecta la dinamica familiar."
+  },
+  {
+    "id": "n069",
+    "titulo": "Nota de visita 069 - toxico",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. fumador cronico con tos persistente, riesgo respiratorio. dieta baja en proteina; consumo de frutas y verduras menor a tres dias por semana. esquema de vacunacion incompleto en dos menores."
+  },
+  {
+    "id": "n070",
+    "titulo": "Nota de visita 070 - agua",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. no cuentan con agua potable, hierven el agua antes de beberla. dieta baja en proteina; consumo de frutas y verduras menor a tres dias por semana. gestante de 19 anos, primer embarazo, atencion en el hogar."
+  },
+  {
+    "id": "n071",
+    "titulo": "Nota de visita 071 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. vivienda sin drenaje, letrina en mal estado en el patio trasero. familia con inseguridad alimentaria, dos menores con peso bajo."
+  },
+  {
+    "id": "n072",
+    "titulo": "Nota de visita 072 - vector",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. lactante con bajo peso y signos de desnutricion infantil. gestante con embarazo de alto riesgo, requiere referencia a hospital."
+  },
+  {
+    "id": "n073",
+    "titulo": "Nota de visita 073 - vivienda",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. vivienda sin drenaje, letrina en mal estado en el patio trasero. servicio de agua intermitente; almacenan en tambos sin tapa."
+  },
+  {
+    "id": "n074",
+    "titulo": "Nota de visita 074 - vivienda",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. vivienda con piso de tierra y techo de lamina. lactante con bajo peso y signos de desnutricion infantil. caso sospechoso de dengue con fiebre alta en un menor."
+  },
+  {
+    "id": "n075",
+    "titulo": "Nota de visita 075 - toxico",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. paciente con fiebre, dolor de cuerpo y sospecha de dengue. persona de 78 anos con artritis, requiere visita domiciliaria periodica."
+  },
+  {
+    "id": "n076",
+    "titulo": "Nota de visita 076 - vacunacion",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. cartilla de vacunacion atrasada, faltan dosis de sarampion. familia con inseguridad alimentaria, dos menores con peso bajo. paciente con fiebre, dolor de cuerpo y sospecha de dengue."
+  },
+  {
+    "id": "n077",
+    "titulo": "Nota de visita 077 - toxico",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. servicio de agua intermitente; almacenan en tambos sin tapa. mujer embarazada sin consultas prenatales ni acido folico."
+  },
+  {
+    "id": "n078",
+    "titulo": "Nota de visita 078 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. persona de 78 anos con artritis, requiere visita domiciliaria periodica. servicio de agua intermitente; almacenan en tambos sin tapa. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n079",
+    "titulo": "Nota de visita 079 - agua",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. viviendas sin agua entubada que dependen de pipas una vez por semana. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n080",
+    "titulo": "Nota de visita 080 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. vivienda sin drenaje, letrina en mal estado en el patio trasero. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion."
+  },
+  {
+    "id": "n081",
+    "titulo": "Nota de visita 081 - toxico",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. vivienda sin drenaje, letrina en mal estado en el patio trasero. hipertension no controlada, no acude a sus citas de seguimiento."
+  },
+  {
+    "id": "n082",
+    "titulo": "Nota de visita 082 - toxico",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. lactante con bajo peso y signos de desnutricion infantil."
+  },
+  {
+    "id": "n083",
+    "titulo": "Nota de visita 083 - vector",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. gestante de 19 anos, primer embarazo, atencion en el hogar."
+  },
+  {
+    "id": "n084",
+    "titulo": "Nota de visita 084 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. adulto mayor postrado en cama que depende de cuidador. techo de carton y lamina con goteras durante la temporada de lluvias."
+  },
+  {
+    "id": "n085",
+    "titulo": "Nota de visita 085 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. paciente con hipertension arterial y sobrepeso, sin tratamiento."
+  },
+  {
+    "id": "n086",
+    "titulo": "Nota de visita 086 - vector",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. paciente con fiebre, dolor de cuerpo y sospecha de dengue. mujer embarazada sin consultas prenatales ni acido folico. no cuentan con agua potable, hierven el agua antes de beberla."
+  },
+  {
+    "id": "n087",
+    "titulo": "Nota de visita 087 - vector",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. criaderos de mosco en el patio; riesgo de dengue. menor sin vacuna contra influenza ni refuerzo pendiente. adulto mayor que vive solo, con movilidad reducida."
+  },
+  {
+    "id": "n088",
+    "titulo": "Nota de visita 088 - embarazo",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. embarazada sin control prenatal en el primer trimestre. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n089",
+    "titulo": "Nota de visita 089 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. familia con inseguridad alimentaria, dos menores con peso bajo. casa de adobe en mal estado, paredes con humedad y hacinamiento."
+  },
+  {
+    "id": "n090",
+    "titulo": "Nota de visita 090 - toxico",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. servicio de agua intermitente; almacenan en tambos sin tapa."
+  },
+  {
+    "id": "n091",
+    "titulo": "Nota de visita 091 - embarazo",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. embarazada en tercer trimestre sin ultrasonido ni control medico. adulto mayor con diabetes sin control glucemico. falta refuerzo de tetanos en mujer gestante."
+  },
+  {
+    "id": "n092",
+    "titulo": "Nota de visita 092 - vivienda",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. techo de carton y lamina con goteras durante la temporada de lluvias. menor sin vacuna contra influenza ni refuerzo pendiente."
+  },
+  {
+    "id": "n093",
+    "titulo": "Nota de visita 093 - agua",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. sin agua entubada, acarrean agua del pozo comunitario. nino con desnutricion cronica y talla baja para su edad."
+  },
+  {
+    "id": "n094",
+    "titulo": "Nota de visita 094 - embarazo",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. mujer embarazada sin consultas prenatales ni acido folico. criaderos de mosco en el patio; riesgo de dengue."
+  },
+  {
+    "id": "n095",
+    "titulo": "Nota de visita 095 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. vivienda sin drenaje, letrina en mal estado en el patio trasero. criaderos de mosco en el patio; riesgo de dengue. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n096",
+    "titulo": "Nota de visita 096 - cronica",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. paciente cronico con diabetes e hipertension, requiere control mensual. abundancia de larvas de mosquito en cacharros, foco de dengue. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion."
+  },
+  {
+    "id": "n097",
+    "titulo": "Nota de visita 097 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. abundancia de larvas de mosquito en cacharros, foco de dengue. anciano que vive solo sin redes de apoyo cercanas."
+  },
+  {
+    "id": "n098",
+    "titulo": "Nota de visita 098 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. falta refuerzo de tetanos en mujer gestante. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n099",
+    "titulo": "Nota de visita 099 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo. tabaquismo activo en dos integrantes del nucleo familiar. paciente con fiebre, dolor de cuerpo y sospecha de dengue."
+  },
+  {
+    "id": "n100",
+    "titulo": "Nota de visita 100 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. esquema de inmunizacion incompleto, se agenda visita de seguimiento. mujer embarazada sin consultas prenatales ni acido folico. paciente cronico con diabetes e hipertension, requiere control mensual."
+  },
+  {
+    "id": "n101",
+    "titulo": "Nota de visita 101 - agua",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. viviendas sin agua entubada que dependen de pipas una vez por semana. lactante con bajo peso y signos de desnutricion infantil."
+  },
+  {
+    "id": "n102",
+    "titulo": "Nota de visita 102 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. fumador cronico con tos persistente, riesgo respiratorio. adulto mayor que vive solo, con movilidad reducida."
+  },
+  {
+    "id": "n103",
+    "titulo": "Nota de visita 103 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. dieta baja en proteina; consumo de frutas y verduras menor a tres dias por semana. abundancia de larvas de mosquito en cacharros, foco de dengue. embarazada en tercer trimestre sin ultrasonido ni control medico."
+  },
+  {
+    "id": "n104",
+    "titulo": "Nota de visita 104 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. persona mayor con caidas frecuentes y riesgo de fractura. mujer embarazada sin consultas prenatales ni acido folico. nino con desnutricion cronica y talla baja para su edad."
+  },
+  {
+    "id": "n105",
+    "titulo": "Nota de visita 105 - vacunacion",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. esquema de vacunacion incompleto en dos menores. persona de 78 anos con artritis, requiere visita domiciliaria periodica. no cuentan con agua potable, hierven el agua antes de beberla."
+  },
+  {
+    "id": "n106",
+    "titulo": "Nota de visita 106 - nutricion",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. lactante con bajo peso y signos de desnutricion infantil. anciano que vive solo sin redes de apoyo cercanas."
+  },
+  {
+    "id": "n107",
+    "titulo": "Nota de visita 107 - agua",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. servicio de agua intermitente; almacenan en tambos sin tapa. nino con desnutricion cronica y talla baja para su edad. paciente con hipertension arterial y sobrepeso, sin tratamiento."
+  },
+  {
+    "id": "n108",
+    "titulo": "Nota de visita 108 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. anciano que vive solo sin redes de apoyo cercanas. adulto mayor con diabetes sin control glucemico."
+  },
+  {
+    "id": "n109",
+    "titulo": "Nota de visita 109 - cronica",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. adulto mayor con diabetes sin control glucemico. alcoholismo en el hogar asociado a violencia intrafamiliar. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo."
+  },
+  {
+    "id": "n110",
+    "titulo": "Nota de visita 110 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. jefe de familia con consumo de alcohol frecuente. mujer embarazada sin consultas prenatales ni acido folico. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n111",
+    "titulo": "Nota de visita 111 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. criaderos de mosco en el patio; riesgo de dengue. alcoholismo en el hogar asociado a violencia intrafamiliar."
+  },
+  {
+    "id": "n112",
+    "titulo": "Nota de visita 112 - cronica",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. adulto mayor con diabetes sin control glucemico. falta refuerzo de tetanos en mujer gestante."
+  },
+  {
+    "id": "n113",
+    "titulo": "Nota de visita 113 - nutricion",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. lactante con bajo peso y signos de desnutricion infantil. abundancia de larvas de mosquito en cacharros, foco de dengue. persona mayor con caidas frecuentes y riesgo de fractura."
+  },
+  {
+    "id": "n114",
+    "titulo": "Nota de visita 114 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. casa de adobe en mal estado, paredes con humedad y hacinamiento. servicio de agua intermitente; almacenan en tambos sin tapa. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n115",
+    "titulo": "Nota de visita 115 - nutricion",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. familia con inseguridad alimentaria, dos menores con peso bajo. adulto mayor con diabetes sin control glucemico."
+  },
+  {
+    "id": "n116",
+    "titulo": "Nota de visita 116 - vector",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n117",
+    "titulo": "Nota de visita 117 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. nino con desnutricion cronica y talla baja para su edad. menor sin vacuna contra influenza ni refuerzo pendiente."
+  },
+  {
+    "id": "n118",
+    "titulo": "Nota de visita 118 - vacunacion",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. menor sin vacuna contra influenza ni refuerzo pendiente. menor de 3 anos con bajo peso para la edad."
+  },
+  {
+    "id": "n119",
+    "titulo": "Nota de visita 119 - cronica",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. paciente con hipertension arterial y sobrepeso, sin tratamiento. esquema de vacunacion incompleto en dos menores."
+  },
+  {
+    "id": "n120",
+    "titulo": "Nota de visita 120 - vacunacion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. menor sin vacuna contra influenza ni refuerzo pendiente. adulto mayor que vive solo, con movilidad reducida."
+  },
+  {
+    "id": "n121",
+    "titulo": "Nota de visita 121 - vector",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. menor sin vacuna contra influenza ni refuerzo pendiente. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n122",
+    "titulo": "Nota de visita 122 - vector",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. mujer embarazada sin consultas prenatales ni acido folico."
+  },
+  {
+    "id": "n123",
+    "titulo": "Nota de visita 123 - nutricion",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. nino con desnutricion cronica y talla baja para su edad. techo de carton y lamina con goteras durante la temporada de lluvias."
+  },
+  {
+    "id": "n124",
+    "titulo": "Nota de visita 124 - toxico",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. persona de 78 anos con artritis, requiere visita domiciliaria periodica."
+  },
+  {
+    "id": "n125",
+    "titulo": "Nota de visita 125 - agua",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. viviendas sin agua entubada que dependen de pipas una vez por semana. consumo nocivo de alcohol que afecta la dinamica familiar. diabetico que abandono el tratamiento por falta de medicamento."
+  },
+  {
+    "id": "n126",
+    "titulo": "Nota de visita 126 - embarazo",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. gestante con embarazo de alto riesgo, requiere referencia a hospital. abundancia de larvas de mosquito en cacharros, foco de dengue."
+  },
+  {
+    "id": "n127",
+    "titulo": "Nota de visita 127 - toxico",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. no cuentan con agua potable, hierven el agua antes de beberla."
+  },
+  {
+    "id": "n128",
+    "titulo": "Nota de visita 128 - vector",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. patio con cacharros y llantas que acumulan agua, criadero de mosco. vivienda sin drenaje, letrina en mal estado en el patio trasero."
+  },
+  {
+    "id": "n129",
+    "titulo": "Nota de visita 129 - nutricion",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. familia con inseguridad alimentaria, dos menores con peso bajo. gestante con embarazo de alto riesgo, requiere referencia a hospital."
+  },
+  {
+    "id": "n130",
+    "titulo": "Nota de visita 130 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. familia con inseguridad alimentaria, dos menores con peso bajo. falta refuerzo de tetanos en mujer gestante."
+  },
+  {
+    "id": "n131",
+    "titulo": "Nota de visita 131 - toxico",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. servicio de agua intermitente; almacenan en tambos sin tapa. casa de adobe en mal estado, paredes con humedad y hacinamiento."
+  },
+  {
+    "id": "n132",
+    "titulo": "Nota de visita 132 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. adulto mayor que vive solo, con movilidad reducida. caso sospechoso de dengue con fiebre alta en un menor."
+  },
+  {
+    "id": "n133",
+    "titulo": "Nota de visita 133 - agua",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. no cuentan con agua potable, hierven el agua antes de beberla. paciente cronico con diabetes e hipertension, requiere control mensual. nino con desnutricion cronica y talla baja para su edad."
+  },
+  {
+    "id": "n134",
+    "titulo": "Nota de visita 134 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. dieta baja en proteina; consumo de frutas y verduras menor a tres dias por semana. adulto mayor postrado en cama que depende de cuidador."
+  },
+  {
+    "id": "n135",
+    "titulo": "Nota de visita 135 - agua",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. viviendas sin agua entubada que dependen de pipas una vez por semana. cartilla de vacunacion atrasada, faltan dosis de sarampion."
+  },
+  {
+    "id": "n136",
+    "titulo": "Nota de visita 136 - vivienda",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. hogar de un solo cuarto donde duermen seis personas, hacinamiento severo. esquema de inmunizacion incompleto, se agenda visita de seguimiento. embarazada en tercer trimestre sin ultrasonido ni control medico."
+  },
+  {
+    "id": "n137",
+    "titulo": "Nota de visita 137 - toxico",
+    "texto": "Visita domiciliaria en colonia El Calvario, Suchiapa. consumo nocivo de alcohol que afecta la dinamica familiar. anciano que vive solo sin redes de apoyo cercanas."
+  },
+  {
+    "id": "n138",
+    "titulo": "Nota de visita 138 - toxico",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. tabaquismo activo en dos integrantes del nucleo familiar. gestante de 19 anos, primer embarazo, atencion en el hogar. patio con cacharros y llantas que acumulan agua, criadero de mosco."
+  },
+  {
+    "id": "n139",
+    "titulo": "Nota de visita 139 - vector",
+    "texto": "Visita domiciliaria en colonia Las Palmas, Suchiapa. abundancia de larvas de mosquito en cacharros, foco de dengue. vivienda sin drenaje, letrina en mal estado en el patio trasero."
+  },
+  {
+    "id": "n140",
+    "titulo": "Nota de visita 140 - cronica",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. paciente con hipertension arterial y sobrepeso, sin tratamiento. alcoholismo en el hogar asociado a violencia intrafamiliar. techo de carton y lamina con goteras durante la temporada de lluvias."
+  },
+  {
+    "id": "n141",
+    "titulo": "Nota de visita 141 - toxico",
+    "texto": "Visita domiciliaria en colonia Centro, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n142",
+    "titulo": "Nota de visita 142 - vector",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. criaderos de mosco en el patio; riesgo de dengue. hipertension no controlada, no acude a sus citas de seguimiento."
+  },
+  {
+    "id": "n143",
+    "titulo": "Nota de visita 143 - vector",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. abundancia de larvas de mosquito en cacharros, foco de dengue. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. adulto mayor postrado en cama que depende de cuidador."
+  },
+  {
+    "id": "n144",
+    "titulo": "Nota de visita 144 - adulto_mayor",
+    "texto": "Visita domiciliaria en colonia San Jacinto, Suchiapa. adulto mayor que vive solo, con movilidad reducida. casa de adobe en mal estado, paredes con humedad y hacinamiento. cartilla de vacunacion atrasada, faltan dosis de sarampion."
+  },
+  {
+    "id": "n145",
+    "titulo": "Nota de visita 145 - vector",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. criaderos de mosco en el patio; riesgo de dengue. viviendas sin agua entubada que dependen de pipas una vez por semana."
+  },
+  {
+    "id": "n146",
+    "titulo": "Nota de visita 146 - vivienda",
+    "texto": "Visita domiciliaria en colonia San Roque, Suchiapa. vivienda con piso de tierra y techo de lamina. anciano que vive solo sin redes de apoyo cercanas. diabetico que abandono el tratamiento por falta de medicamento."
+  },
+  {
+    "id": "n147",
+    "titulo": "Nota de visita 147 - cronica",
+    "texto": "Visita domiciliaria en colonia Pacu, Suchiapa. hipertension no controlada, no acude a sus citas de seguimiento. familia con inseguridad alimentaria, dos menores con peso bajo. falta refuerzo de tetanos en mujer gestante."
+  },
+  {
+    "id": "n148",
+    "titulo": "Nota de visita 148 - agua",
+    "texto": "Visita domiciliaria en colonia Independencia, Suchiapa. almacenamiento de agua en cubetas destapadas, riesgo de contaminacion. caso sospechoso de dengue con fiebre alta en un menor."
+  },
+  {
+    "id": "n149",
+    "titulo": "Nota de visita 149 - nutricion",
+    "texto": "Visita domiciliaria en colonia San Antonio, Suchiapa. nino con desnutricion cronica y talla baja para su edad. fumador cronico con tos persistente, riesgo respiratorio."
+  },
+  {
+    "id": "n150",
+    "titulo": "Nota de visita 150 - toxico",
+    "texto": "Visita domiciliaria en colonia San Jose, Suchiapa. alcoholismo en el hogar asociado a violencia intrafamiliar. falta refuerzo de tetanos en mujer gestante."
+  }
+]

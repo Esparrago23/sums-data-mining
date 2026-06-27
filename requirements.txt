@@ -1,0 +1,32 @@
+# ============================================================================
+# SUMS · Módulo de Minería de Datos — dependencias UNIFICADAS (Subcomp. B y C)
+# ----------------------------------------------------------------------------
+# Probado con Python 3.13.7 en el venv: C:\Users\minis\.venvs\sums-mineria
+# Crear el entorno e instalar:
+#     python -m venv C:\Users\minis\.venvs\sums-mineria
+#     C:\Users\minis\.venvs\sums-mineria\Scripts\python.exe -m pip install -r requirements.txt
+#     C:\Users\minis\.venvs\sums-mineria\Scripts\python.exe -m spacy download es_core_news_sm
+# (el modelo de spaCy NO se instala por nombre desde PyPI; se baja con el comando de arriba)
+# ============================================================================
+
+# --- Datos / ML (Subcomponente B) ---
+numpy
+pandas>=2.2            # probado con 3.0.3 — usar la API sin `inplace` en column-slices
+scikit-learn>=1.5      # probado con 1.9.0
+xgboost>=2.0           # probado con 3.3.0
+
+# --- NLP / IR (Subcomponente C) ---
+spacy>=3.8,<3.9        # probado con 3.8.14  (+ modelo es_core_news_sm vía spacy download)
+nltk                   # SnowballStemmer para la comparación stemming-vs-lematización
+
+# --- Visualización y entregable académico (notebooks) ---
+matplotlib
+seaborn
+jupyter
+nbconvert
+ipykernel
+
+# --- Integración (API de ejemplo: integracion/api_mineria.py) ---
+fastapi                # probado con 0.138.1
+uvicorn[standard]      # probado con 0.49.0  (servidor ASGI)
+httpx                  # cliente para pruebas con TestClient
