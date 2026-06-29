@@ -1,0 +1,13 @@
+# Subcomponente A - OCR estructurado de cedulas PDF
+#
+# Dependencias Python del pipeline propio:
+#   - numpy: matrices y calculo de features visuales
+#   - opencv-python: preprocesamiento, binarizacion, contornos y lineas
+#
+# Dependencia del sistema requerida para renderizar PDFs:
+#   - pdftoppm (Poppler)
+#     Ubuntu/Debian: sudo apt install poppler-utils
+#     Windows: instalar Poppler y agregar bin/ al PATH
+
+numpy
+opencv-python

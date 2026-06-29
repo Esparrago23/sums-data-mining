@@ -1,0 +1,64 @@
+{
+  "Cédula_0001": {
+    "familia.nombre_informante": "",
+    "familia.rol_familiar": "",
+    "familia.domicilio": "",
+    "familia.localidad": "",
+    "familia.manzana": "",
+    "familia.vivienda": "",
+
+    "vivienda.material_techo.concreto": true,
+    "vivienda.material_techo.madera": false,
+    "vivienda.material_techo.lamina": false,
+    "vivienda.material_techo.otros": false,
+
+    "vivienda.material_paredes.concreto": false,
+    "vivienda.material_paredes.madera": false,
+    "vivienda.material_paredes.lamina": false,
+    "vivienda.material_paredes.otros": true,
+
+    "vivienda.material_piso.concreto": true,
+    "vivienda.material_piso.madera": false,
+    "vivienda.material_piso.tierra": false,
+    "vivienda.material_piso.otros": false,
+
+    "vivienda.numero_cuartos": "",
+    "vivienda.numero_habitantes": "",
+
+    "vivienda.agua_entubada.si": false,
+    "vivienda.agua_entubada.no": false,
+
+    "vivienda.energia_electrica.si": false,
+    "vivienda.energia_electrica.no": false,
+
+    "vivienda.cocina_ubicacion.fuera_dormitorio": false,
+    "vivienda.cocina_ubicacion.dentro_dormitorio": false,
+
+    "vivienda.cocina_lena.si": false,
+    "vivienda.cocina_lena.no": false,
+
+    "vivienda.excretas.wc": false,
+    "vivienda.excretas.letrina": false,
+    "vivienda.excretas.ras_suelo": false,
+
+    "vivienda.perros_gatos_dentro.si": false,
+    "vivienda.perros_gatos_dentro.no": false,
+
+    "vivienda.mascotas_vacunas.si": false,
+    "vivienda.mascotas_vacunas.no": false,
+
+    "vivienda.mascotas_esterilizadas.si": false,
+    "vivienda.mascotas_esterilizadas.no": false,
+
+    "vivienda.red_alcantarillado.si": false,
+    "vivienda.red_alcantarillado.no": false,
+
+    "vivienda.fosa_septica.si": false,
+    "vivienda.fosa_septica.no": false,
+
+    "vivienda.animales.aves_corral": false,
+    "vivienda.animales.bovinos": false,
+    "vivienda.animales.porcinos": false,
+    "vivienda.animales.otros": false
+  }
+}

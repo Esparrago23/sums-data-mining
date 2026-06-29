@@ -1,5 +1,5 @@
 # ============================================================================
-# SUMS · Módulo de Minería de Datos — dependencias UNIFICADAS (Subcomp. B y C)
+# SUMS · Módulo de Minería de Datos — dependencias UNIFICADAS (Subcomp. A, B y C)
 # ----------------------------------------------------------------------------
 # Probado con Python 3.13.7 en el venv: C:\Users\minis\.venvs\sums-mineria
 # Crear el entorno e instalar:
@@ -7,7 +7,13 @@
 #     C:\Users\minis\.venvs\sums-mineria\Scripts\python.exe -m pip install -r requirements.txt
 #     C:\Users\minis\.venvs\sums-mineria\Scripts\python.exe -m spacy download es_core_news_sm
 # (el modelo de spaCy NO se instala por nombre desde PyPI; se baja con el comando de arriba)
+# Requisito del sistema para Subcomp. A:
+#     Ubuntu/Debian: sudo apt install poppler-utils   # provee pdftoppm
+#     Windows: instalar Poppler y agregar bin/ al PATH
 # ============================================================================
+
+# --- OCR estructurado / visión (Subcomponente A) ---
+opencv-python          # cv2: binarización, contornos, HoughLines, overlays
 
 # --- Datos / ML (Subcomponente B) ---
 numpy

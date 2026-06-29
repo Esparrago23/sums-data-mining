@@ -1,0 +1,65 @@
+{
+  "version": "0.1",
+  "notes": "Coordenadas relativas a la caja principal del formulario. MVP: pagina 1 con campos de vivienda y familia.",
+  "pages": {
+    "1": [
+      {"id": "familia.nombre_informante", "type": "text", "bbox": [0.060, 0.255, 0.255, 0.315]},
+      {"id": "familia.rol_familiar", "type": "text", "bbox": [0.320, 0.255, 0.485, 0.315]},
+      {"id": "familia.domicilio", "type": "text", "bbox": [0.485, 0.255, 0.705, 0.315]},
+      {"id": "familia.localidad", "type": "text", "bbox": [0.705, 0.255, 0.790, 0.315]},
+      {"id": "familia.manzana", "type": "text", "bbox": [0.790, 0.255, 0.880, 0.315]},
+      {"id": "familia.vivienda", "type": "text", "bbox": [0.880, 0.255, 0.985, 0.315]},
+
+      {"id": "vivienda.material_techo.concreto", "type": "checkbox", "bbox": [0.050, 0.385, 0.110, 0.430]},
+      {"id": "vivienda.material_techo.madera", "type": "checkbox", "bbox": [0.110, 0.385, 0.190, 0.430]},
+      {"id": "vivienda.material_techo.lamina", "type": "checkbox", "bbox": [0.190, 0.385, 0.270, 0.430]},
+      {"id": "vivienda.material_techo.otros", "type": "checkbox", "bbox": [0.270, 0.385, 0.355, 0.430]},
+
+      {"id": "vivienda.material_paredes.concreto", "type": "checkbox", "bbox": [0.355, 0.385, 0.425, 0.430]},
+      {"id": "vivienda.material_paredes.madera", "type": "checkbox", "bbox": [0.425, 0.385, 0.510, 0.430]},
+      {"id": "vivienda.material_paredes.lamina", "type": "checkbox", "bbox": [0.510, 0.385, 0.590, 0.430]},
+      {"id": "vivienda.material_paredes.otros", "type": "checkbox", "bbox": [0.590, 0.385, 0.660, 0.430]},
+
+      {"id": "vivienda.material_piso.concreto", "type": "checkbox", "bbox": [0.670, 0.385, 0.745, 0.430]},
+      {"id": "vivienda.material_piso.madera", "type": "checkbox", "bbox": [0.745, 0.385, 0.820, 0.430]},
+      {"id": "vivienda.material_piso.tierra", "type": "checkbox", "bbox": [0.820, 0.385, 0.895, 0.430]},
+      {"id": "vivienda.material_piso.otros", "type": "checkbox", "bbox": [0.895, 0.385, 0.980, 0.430]},
+
+      {"id": "vivienda.numero_cuartos", "type": "number", "bbox": [0.055, 0.475, 0.205, 0.520]},
+      {"id": "vivienda.numero_habitantes", "type": "number", "bbox": [0.205, 0.475, 0.350, 0.520]},
+      {"id": "vivienda.agua_entubada.si", "type": "checkbox", "bbox": [0.380, 0.475, 0.455, 0.520]},
+      {"id": "vivienda.agua_entubada.no", "type": "checkbox", "bbox": [0.455, 0.475, 0.535, 0.520]},
+      {"id": "vivienda.energia_electrica.si", "type": "checkbox", "bbox": [0.535, 0.475, 0.610, 0.520]},
+      {"id": "vivienda.energia_electrica.no", "type": "checkbox", "bbox": [0.610, 0.475, 0.665, 0.520]},
+
+      {"id": "vivienda.cocina_ubicacion.fuera_dormitorio", "type": "checkbox", "bbox": [0.680, 0.475, 0.760, 0.520]},
+      {"id": "vivienda.cocina_ubicacion.dentro_dormitorio", "type": "checkbox", "bbox": [0.760, 0.475, 0.840, 0.520]},
+      {"id": "vivienda.cocina_lena.si", "type": "checkbox", "bbox": [0.850, 0.475, 0.920, 0.520]},
+      {"id": "vivienda.cocina_lena.no", "type": "checkbox", "bbox": [0.920, 0.475, 0.980, 0.520]},
+
+      {"id": "vivienda.excretas.wc", "type": "checkbox", "bbox": [0.050, 0.560, 0.130, 0.610]},
+      {"id": "vivienda.excretas.letrina", "type": "checkbox", "bbox": [0.130, 0.560, 0.240, 0.610]},
+      {"id": "vivienda.excretas.ras_suelo", "type": "checkbox", "bbox": [0.240, 0.560, 0.355, 0.610]},
+
+      {"id": "vivienda.perros_gatos_dentro.si", "type": "checkbox", "bbox": [0.680, 0.540, 0.765, 0.580]},
+      {"id": "vivienda.perros_gatos_dentro.no", "type": "checkbox", "bbox": [0.765, 0.540, 0.845, 0.580]},
+      {"id": "vivienda.mascotas_vacunas.si", "type": "checkbox", "bbox": [0.680, 0.580, 0.765, 0.620]},
+      {"id": "vivienda.mascotas_vacunas.no", "type": "checkbox", "bbox": [0.765, 0.580, 0.845, 0.620]},
+      {"id": "vivienda.mascotas_esterilizadas.si", "type": "checkbox", "bbox": [0.680, 0.620, 0.765, 0.665]},
+      {"id": "vivienda.mascotas_esterilizadas.no", "type": "checkbox", "bbox": [0.765, 0.620, 0.845, 0.665]},
+
+      {"id": "vivienda.red_alcantarillado.si", "type": "checkbox", "bbox": [0.055, 0.685, 0.145, 0.730]},
+      {"id": "vivienda.red_alcantarillado.no", "type": "checkbox", "bbox": [0.145, 0.685, 0.235, 0.730]},
+      {"id": "vivienda.fosa_septica.si", "type": "checkbox", "bbox": [0.235, 0.685, 0.325, 0.730]},
+      {"id": "vivienda.fosa_septica.no", "type": "checkbox", "bbox": [0.325, 0.685, 0.405, 0.730]},
+
+      {"id": "vivienda.animales.aves_corral", "type": "checkbox", "bbox": [0.405, 0.705, 0.570, 0.750]},
+      {"id": "vivienda.animales.bovinos", "type": "checkbox", "bbox": [0.570, 0.705, 0.660, 0.750]},
+      {"id": "vivienda.animales.porcinos", "type": "checkbox", "bbox": [0.660, 0.705, 0.750, 0.750]},
+      {"id": "vivienda.animales.otros", "type": "checkbox", "bbox": [0.750, 0.705, 0.985, 0.750]}
+    ],
+    "2": [],
+    "3": [],
+    "4": []
+  }
+}
