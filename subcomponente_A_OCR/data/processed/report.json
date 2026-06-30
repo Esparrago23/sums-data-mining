@@ -1,0 +1,77 @@
+{
+  "n_pdfs": 10,
+  "dpi": 180,
+  "documents": [
+    {
+      "doc_id": "Cédula_0001",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0002",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0003",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0004",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0005",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0006",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0007",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0008",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0009",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    },
+    {
+      "doc_id": "Cédula_0010",
+      "pages": 4,
+      "fields": 45,
+      "needs_review": 8
+    }
+  ],
+  "metrics": {
+    "checkbox_total": 0,
+    "checkbox_correct": 0,
+    "checkbox_accuracy": null,
+    "checkbox_errors": []
+  },
+  "outputs": {
+    "predictions": "data\\processed\\predictions.json",
+    "rendered_pages": "data\\processed\\rendered_pages",
+    "rois": "data\\processed\\rois"
+  }
+}

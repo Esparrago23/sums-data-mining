@@ -14,6 +14,7 @@
 
 # --- OCR estructurado / visión (Subcomponente A) ---
 opencv-python          # cv2: binarización, contornos, HoughLines, overlays
+pymupdf                # fallback puro Python para renderizar PDFs si Poppler no esta disponible
 
 # --- Datos / ML (Subcomponente B) ---
 numpy

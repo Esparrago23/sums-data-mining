@@ -26,7 +26,8 @@ class PageImage:
 
 
 def load_gray(path: str | Path) -> np.ndarray:
-    img = cv2.imread(str(path), cv2.IMREAD_GRAYSCALE)
+    data = np.fromfile(str(path), dtype=np.uint8)
+    img = cv2.imdecode(data, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise FileNotFoundError(f"No se pudo abrir la imagen: {path}")
     return img

@@ -3,6 +3,7 @@
 # Dependencias Python del pipeline propio:
 #   - numpy: matrices y calculo de features visuales
 #   - opencv-python: preprocesamiento, binarizacion, contornos y lineas
+#   - pymupdf: fallback puro Python para renderizar PDFs si Poppler no esta disponible
 #
 # Dependencia del sistema requerida para renderizar PDFs:
 #   - pdftoppm (Poppler)
@@ -11,3 +12,4 @@
 
 numpy
 opencv-python
+pymupdf
