@@ -41,7 +41,11 @@ def draw_overlay(image_path: str | Path, field_map_path: str | Path, out_path: s
     x, y, w, h = page.form_box
     cv2.rectangle(img, (x, y), (x + w, y + h), (0, 180, 255), 3)
 
-    fields = field_map.get("pages", {}).get(str(page_num), [])
+    fields = field_map.get("page_kinds", {}).get(page.page_kind)
+    if fields is None and page.page_kind == "datos_vivienda":
+        fields = field_map.get("pages", {}).get("1", [])
+    if fields is None:
+        fields = field_map.get("pages", {}).get(str(page_num), [])
     for field in fields:
         rx1, ry1, rx2, ry2 = field["bbox"]
         x1 = int(x + rx1 * w)

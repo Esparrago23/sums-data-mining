@@ -82,16 +82,65 @@ def estimate_form_box(binary: np.ndarray) -> tuple[int, int, int, int]:
     return (x, y, bw, bh)
 
 
-def classify_page(page_num: int, box: tuple[int, int, int, int]) -> str:
-    """Clasificacion simple por posicion en el paquete."""
-    if page_num == 1:
+def _line_density(binary: np.ndarray, min_len_frac: float) -> tuple[float, float]:
+    """Densidad de lineas largas horizontales/verticales en una imagen binaria."""
+    h, w = binary.shape
+    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (max(8, int(w * min_len_frac)), 1))
+    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(8, int(h * min_len_frac))))
+    horizontal = cv2.morphologyEx(binary, cv2.MORPH_OPEN, h_kernel)
+    vertical = cv2.morphologyEx(binary, cv2.MORPH_OPEN, v_kernel)
+    area = float(binary.size or 1)
+    return float(np.count_nonzero(horizontal)) / area, float(np.count_nonzero(vertical)) / area
+
+
+def classify_page(binary: np.ndarray, box: tuple[int, int, int, int]) -> str:
+    """Clasifica la pagina por estructura visual, no por orden en el PDF.
+
+    El objetivo inicial es robustecer la extraccion de la pagina de vivienda:
+    si las hojas se escanean/desordenan, seguimos buscando la pagina que contiene
+    identificacion familiar + caracteristicas de vivienda + esquema de vacunacion
+    al pie.
+    """
+    x, y, w, h = box
+    page_h, page_w = binary.shape
+    crop = binary[y : y + h, x : x + w]
+    if crop.size == 0:
+        return "desconocida"
+
+    form_height_ratio = h / float(page_h or 1)
+    form_width_ratio = w / float(page_w or 1)
+    aspect = h / float(w or 1)
+    horizontal_density, vertical_density = _line_density(crop, 0.35)
+    top = crop[: max(1, int(crop.shape[0] * 0.32)), :]
+    mid = crop[int(crop.shape[0] * 0.32) : int(crop.shape[0] * 0.76), :]
+    bottom = crop[int(crop.shape[0] * 0.76) :, :]
+    top_ink = np.count_nonzero(top) / float(top.size or 1)
+    mid_ink = np.count_nonzero(mid) / float(mid.size or 1)
+    bottom_ink = np.count_nonzero(bottom) / float(bottom.size or 1)
+
+    # Paginas de vacunacion sueltas: tabla baja/centrada y caja mas corta.
+    if form_height_ratio < 0.72 and aspect < 1.35:
+        return "vacunacion"
+
+    # Paginas de composicion familiar escaneadas de lado: caja mas alta/estrecha.
+    # En las muestras reales la pagina de vivienda ronda aspect~1.25, mientras
+    # las tablas laterales de familia suelen rondar 1.35-1.45.
+    if aspect > 1.32 and form_height_ratio > 0.75:
+        return "familia"
+    if aspect > 1.25 and vertical_density > horizontal_density * 1.8:
+        return "familia"
+
+    # Pagina de datos/vivienda: caja amplia, alta, con secciones cargadas arriba
+    # y a media pagina; ademas suele traer una tabla de vacunacion al pie.
+    vivienda_score = 0
+    vivienda_score += 1 if form_height_ratio >= 0.72 else 0
+    vivienda_score += 1 if form_width_ratio >= 0.70 else 0
+    vivienda_score += 1 if top_ink > 0.045 else 0
+    vivienda_score += 1 if mid_ink > 0.035 else 0
+    vivienda_score += 1 if bottom_ink > 0.018 else 0
+    if vivienda_score >= 4:
         return "datos_vivienda"
-    if page_num == 2:
-        return "vacunacion_a"
-    if page_num == 3:
-        return "familia_a"
-    if page_num == 4:
-        return "familia_b"
+
     return "desconocida"
 
 
@@ -106,7 +155,7 @@ def normalize_page(image_path: str | Path, page_num: int) -> PageImage:
         gray=gray,
         binary=binary,
         form_box=box,
-        page_kind=classify_page(page_num, box),
+        page_kind=classify_page(binary, box),
     )
 
 
