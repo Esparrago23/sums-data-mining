@@ -112,9 +112,29 @@ def extract_document(
     out_root = Path(out_root)
     roi_dir = out_root / "rois" / doc_id
     document: dict[str, Any] = {"doc_id": doc_id, "pages": {}, "fields": {}}
+    datos_candidates = [
+        (i, page)
+        for i, page in enumerate(pages, start=1)
+        if page.page_kind == "datos_vivienda"
+    ]
+    datos_page_index = None
+    if datos_candidates:
+        def score(item: tuple[int, PageImage]) -> float:
+            _, page = item
+            _, _, w, h = page.form_box
+            aspect = h / float(w or 1)
+            # La pagina de vivienda real es la candidata cuya caja se parece mas
+            # a la plantilla canónica; evita que paginas laterales sobrescriban.
+            return -abs(aspect - 1.25)
+
+        datos_page_index = max(datos_candidates, key=score)[0]
 
     for page_index, page in enumerate(pages, start=1):
-        fields = field_map.get("pages", {}).get(str(page_index), [])
+        fields = field_map.get("page_kinds", {}).get(page.page_kind)
+        if fields is None and page.page_kind == "datos_vivienda":
+            fields = field_map.get("pages", {}).get("1", []) if page_index == datos_page_index else []
+        if fields is None:
+            fields = field_map.get("pages", {}).get(str(page_index), [])
         page_result = extract_page(page, fields, roi_dir / f"page_{page_index}")
         document["pages"][str(page_index)] = {
             "source": str(page.source),

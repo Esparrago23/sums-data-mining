@@ -32,6 +32,22 @@ from evaluator import evaluate_checkbox_fields, load_ground_truth  # noqa: E402
 from field_extractor import extract_document, load_field_map  # noqa: E402
 from pdf_renderer import render_all  # noqa: E402
 from preprocessor import normalize_page  # noqa: E402
+from checkbox_trainer import (  # noqa: E402
+    TEST_DOCS,
+    TRAIN_DOCS,
+    apply_exclusive_groups,
+    apply_trained_checkbox_model,
+    evaluate_labeled_split,
+    train_checkbox_model,
+)
+from number_trainer import (  # noqa: E402
+    TEST_DOCS as NUMBER_TEST_DOCS,
+    TRAIN_DOCS as NUMBER_TRAIN_DOCS,
+    apply_number_model,
+    evaluate_number_split,
+    train_number_model,
+)
+from review_exporter import build_review_export  # noqa: E402
 
 
 def _page_num(path: Path) -> int:
@@ -80,14 +96,56 @@ def main() -> int:
     pred_path.write_text(json.dumps(predictions, ensure_ascii=False, indent=2), encoding="utf-8")
 
     truth = load_ground_truth(args.ground_truth)
+    trained_info = None
+    split_metrics = None
+    number_info = None
+    number_split_metrics = None
+    trained_model = train_checkbox_model(predictions, truth, TRAIN_DOCS, TEST_DOCS)
+    if trained_model is not None:
+        apply_trained_checkbox_model(predictions, trained_model)
+        apply_exclusive_groups(predictions)
+        trained_info = {
+            "type": "LogisticRegression + DictVectorizer",
+            "train_docs": trained_model.train_docs,
+            "test_docs": trained_model.test_docs,
+            "n_train_examples": trained_model.n_train,
+            "exclusive_groups": True,
+        }
+        split_metrics = evaluate_labeled_split(
+            predictions, truth, trained_model.train_docs, trained_model.test_docs
+        )
+
+    number_model = train_number_model(predictions, truth, NUMBER_TRAIN_DOCS, NUMBER_TEST_DOCS)
+    if number_model is not None:
+        apply_number_model(predictions, number_model)
+        number_info = {
+            "type": "KNeighborsClassifier(k=1) + loop heuristic for habitantes=9",
+            "train_docs": number_model.train_docs,
+            "test_docs": number_model.test_docs,
+            "n_train_examples": number_model.n_train,
+            "fields": ["vivienda.numero_cuartos", "vivienda.numero_habitantes"],
+        }
+        number_split_metrics = evaluate_number_split(
+            predictions, truth, number_model.train_docs, number_model.test_docs
+        )
+
+    pred_path.write_text(json.dumps(predictions, ensure_ascii=False, indent=2), encoding="utf-8")
+    review_export = build_review_export(predictions)
+    review_path = processed_dir / "review_output.json"
+    review_path.write_text(json.dumps(review_export, ensure_ascii=False, indent=2), encoding="utf-8")
     metrics = evaluate_checkbox_fields(predictions, truth)
     report = {
         "n_pdfs": len(pdfs),
         "dpi": args.dpi,
         "documents": report_docs,
         "metrics": metrics,
+        "trained_checkbox_model": trained_info,
+        "split_metrics": split_metrics,
+        "trained_number_model": number_info,
+        "number_split_metrics": number_split_metrics,
         "outputs": {
             "predictions": str(pred_path),
+            "review_output": str(review_path),
             "rendered_pages": str(rendered_dir),
             "rois": str(processed_dir / "rois"),
         },
@@ -96,11 +154,22 @@ def main() -> int:
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
     print(f"[OK] Predicciones -> {pred_path}")
+    print(f"[OK] Validación    -> {review_path}")
     print(f"[OK] Reporte      -> {report_path}")
     if metrics["checkbox_total"] == 0:
         print("[INFO] Sin ground truth: no se calcularon metricas de accuracy.")
     else:
         print(f"[OK] Checkbox accuracy: {metrics['checkbox_accuracy']}")
+    if split_metrics:
+        print(
+            "[OK] Train/Test checkbox accuracy: "
+            f"{split_metrics['train']['accuracy']} / {split_metrics['test']['accuracy']}"
+        )
+    if number_split_metrics:
+        print(
+            "[OK] Train/Test number accuracy: "
+            f"{number_split_metrics['train']['accuracy']} / {number_split_metrics['test']['accuracy']}"
+        )
     return 0
 
 
