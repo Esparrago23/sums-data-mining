@@ -48,6 +48,23 @@ from number_trainer import (  # noqa: E402
     train_number_model,
 )
 from review_exporter import build_review_export  # noqa: E402
+from rol_trainer import (  # noqa: E402
+    ROL_CATALOG,
+    TEST_DOCS as ROL_TEST_DOCS,
+    TRAIN_DOCS as ROL_TRAIN_DOCS,
+    apply_rol_model,
+    evaluate_rol_split,
+    train_rol_model,
+)
+from text_trainer import (  # noqa: E402
+    TEXT_FIELDS,
+    TEST_DOCS as TEXT_TEST_DOCS,
+    TRAIN_DOCS as TEXT_TRAIN_DOCS,
+    apply_text_model,
+    apply_ocr_text,
+    evaluate_text_split,
+    train_text_models,
+)
 
 
 def _page_num(path: Path) -> int:
@@ -100,6 +117,8 @@ def main() -> int:
     split_metrics = None
     number_info = None
     number_split_metrics = None
+    rol_info = None
+    rol_split_metrics = None
     trained_model = train_checkbox_model(predictions, truth, TRAIN_DOCS, TEST_DOCS)
     if trained_model is not None:
         apply_trained_checkbox_model(predictions, trained_model)
@@ -129,6 +148,47 @@ def main() -> int:
             predictions, truth, number_model.train_docs, number_model.test_docs
         )
 
+    rol_model = train_rol_model(predictions, truth, ROL_TRAIN_DOCS, ROL_TEST_DOCS)
+    if rol_model is not None:
+        apply_rol_model(predictions, rol_model)
+        rol_info = {
+            "type": "KNeighborsClassifier(k=1, cosine) palabra completa",
+            "train_docs": rol_model.train_docs,
+            "test_docs": rol_model.test_docs,
+            "n_train_examples": rol_model.n_train,
+            "field": "familia.rol_familiar",
+            "catalog": ROL_CATALOG,
+            "trained_labels": rol_model.trained_labels,
+            "untrained_labels": rol_model.untrained_labels,
+        }
+        rol_split_metrics = evaluate_rol_split(
+            predictions, truth, rol_model.train_docs, rol_model.test_docs
+        )
+
+    from text_trainer import apply_ocr_text, train_text_models  # noqa: E402
+
+    apply_ocr_text(predictions)
+    text_models = train_text_models(predictions, truth, TEXT_TRAIN_DOCS, TEXT_TEST_DOCS)
+    text_info = {
+        "type": "Tesseract OCR text field",
+        "fields": sorted(TEXT_FIELDS),
+        "predicted_fields": sum(
+            1 for doc in predictions.values() for f in doc.get("fields", {}).values()
+            if f.get("type") == "text" and f.get("value") is not None
+        ),
+    }
+    text_split_metrics = None
+    if text_models:
+        apply_text_model(predictions, text_models)
+        text_info["type"] = "Hybrid OCR + KNeighborsClassifier(k=1, cosine) text field"
+        text_info["train_docs"] = TEXT_TRAIN_DOCS
+        text_info["test_docs"] = TEXT_TEST_DOCS
+        text_info["n_train_examples"] = sum(model.n_train for model in text_models.values())
+        text_info["trained_fields"] = sorted(text_models.keys())
+        text_split_metrics = evaluate_text_split(
+            predictions, truth, TEXT_TRAIN_DOCS, TEXT_TEST_DOCS
+        )
+
     pred_path.write_text(json.dumps(predictions, ensure_ascii=False, indent=2), encoding="utf-8")
     review_export = build_review_export(predictions)
     review_path = processed_dir / "review_output.json"
@@ -143,6 +203,10 @@ def main() -> int:
         "split_metrics": split_metrics,
         "trained_number_model": number_info,
         "number_split_metrics": number_split_metrics,
+        "trained_rol_model": rol_info,
+        "rol_split_metrics": rol_split_metrics,
+        "trained_text_model": text_info,
+        "text_split_metrics": text_split_metrics,
         "outputs": {
             "predictions": str(pred_path),
             "review_output": str(review_path),
@@ -169,6 +233,11 @@ def main() -> int:
         print(
             "[OK] Train/Test number accuracy: "
             f"{number_split_metrics['train']['accuracy']} / {number_split_metrics['test']['accuracy']}"
+        )
+    if rol_split_metrics:
+        print(
+            "[OK] Train/Test rol accuracy: "
+            f"{rol_split_metrics['train']['accuracy']} / {rol_split_metrics['test']['accuracy']}"
         )
     return 0
 

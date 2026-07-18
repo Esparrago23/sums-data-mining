@@ -93,8 +93,8 @@ def checkbox_features(binary_roi: np.ndarray) -> dict[str, float]:
     diagonal = 0
     total = 0
     if lines is not None:
-        for line in lines[:, 0, :]:
-            x1, y1, x2, y2 = line
+        lines = np.asarray(lines).reshape(-1, 4)
+        for x1, y1, x2, y2 in lines:
             angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
             angle = min(angle, 180 - angle)
             total += 1
