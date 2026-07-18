@@ -4,7 +4,7 @@ review_exporter.py
 Exporta una vista compacta para validacion humana.
 
 Incluye solo campos que el usuario necesita comparar rapido contra el PDF:
-checkboxes verdaderos y valores numericos ya predichos.
+checkboxes verdaderos, valores numericos y textos ya predichos.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ def build_review_export(predictions: dict[str, Any]) -> dict[str, Any]:
     for doc_id, doc in predictions.items():
         active: dict[str, Any] = {}
         numeric: dict[str, Any] = {}
+        text_values: dict[str, Any] = {}
         review: dict[str, Any] = {}
         for field_id, field in doc.get("fields", {}).items():
             kind = field.get("type")
@@ -32,6 +33,12 @@ def build_review_export(predictions: dict[str, Any]) -> dict[str, Any]:
                     "confidence": field.get("confidence"),
                     "needs_review": bool(field.get("needs_review", False)),
                 }
+            elif kind == "text" and not field.get("needs_review") and field.get("value") is not None:
+                text_values[field_id] = {
+                    "value": field.get("value"),
+                    "confidence": field.get("confidence"),
+                    "needs_review": False,
+                }
             elif field.get("needs_review"):
                 review[field_id] = {
                     "value": field.get("value"),
@@ -42,6 +49,7 @@ def build_review_export(predictions: dict[str, Any]) -> dict[str, Any]:
         export[doc_id] = {
             "campos_activos": active,
             "valores_numericos": numeric,
+            "valores_texto": text_values,
             "pendientes_revision": review,
         }
     return export
