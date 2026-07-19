@@ -302,6 +302,93 @@ async def ocr_procesar(archivo: UploadFile = File(...)):
         raise HTTPException(500, f"Error procesando OCR: {str(e)}")
 
 
+@app.post("/ocr/procesar-cedula")
+async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
+    """Recibe un PDF de cédula escaneada y extrae todos sus campos estructurados.
+
+    Endpoint principal del **Subcomponente A (OCR)**. Ejecuta el pipeline completo:
+
+    1. **Renderizado:** convierte cada página del PDF a imágenes PNG (180 DPI).
+    2. **Preprocesado:** detecta el recuadro del formulario y normaliza la imagen.
+    3. **Extracción por plantilla:** aplica el modelo OCR sobre los 45 campos
+       definidos en `field_map_sums.json` (37 checkboxes + 6 texto + 2 número).
+    4. **Respuesta:** devuelve un JSON con `doc_id`, campos extraídos (`campos`)
+       y un resumen de cuántos necesitan revisión humana (`needs_review=True`).
+
+    **Input:** archivo PDF enviado como `multipart/form-data` (campo `archivo`).
+
+    **Output:**
+    ```json
+    {
+      "doc_id": "upload_a1b2c3d4",
+      "archivo_original": "cedula_familia_007.pdf",
+      "n_paginas": 2,
+      "campos": {
+        "vivienda.agua_entubada.si": {"type": "checkbox", "value": true, "confidence": 0.91, ...},
+        "vivienda.numero_cuartos":   {"type": "number",   "value": null, "needs_review": true, ...}
+      },
+      "resumen": {"total_campos": 45, "necesitan_revision": 8}
+    }
+    ```
+
+    **Errores:**
+    - `400` — el archivo no es un PDF.
+    - `503` — el módulo OCR no está disponible (field_map no cargado al arrancar).
+    - `500` — error interno durante el procesamiento OCR.
+
+    Ejemplo `curl`:
+        curl -X POST "http://localhost:8001/ocr/procesar-cedula" \\
+             -F "archivo=@cedula_001.pdf"
+    """
+    if not archivo.filename.lower().endswith(".pdf"):
+        raise HTTPException(400, "Solo se aceptan archivos PDF.")
+
+    field_map = ESTADO.get("ocr_field_map")
+    if field_map is None:
+        raise HTTPException(503, "OCR no disponible: field_map no cargado. Verifique que exista config/field_map_sums.json.")
+
+    # Guardar PDF temporalmente con ID único
+    doc_id = f"cedula_{uuid.uuid4().hex[:8]}"
+    processed_dir = Path(ESTADO["ocr_processed_dir"])
+    rendered_dir = processed_dir / "rendered_pages"
+    rendered_dir.mkdir(parents=True, exist_ok=True)
+
+    tmp_pdf = processed_dir / f"{doc_id}.pdf"
+    contenido = await archivo.read()
+    tmp_pdf.write_bytes(contenido)
+
+    try:
+        import re as _re
+
+        def _page_num(p) -> int:
+            m = _re.search(r"-(\d+)\.png$", str(p))
+            return int(m.group(1)) if m else 0
+
+        # 1. Renderizar PDF → PNGs
+        page_paths = render_pdf(str(tmp_pdf), str(rendered_dir), dpi=180)
+
+        # 2. Normalizar cada página con el preprocesador del Subcomponente A
+        pages_sorted = sorted(page_paths, key=_page_num)
+        pages_norm = [normalize_page(str(p), _page_num(p)) for p in pages_sorted]
+
+        # 3. Extraer campos usando field_extractor.extract_document
+        resultado = extract_document(doc_id, pages_norm, field_map, str(processed_dir))
+
+        campos = resultado.get("fields", {})
+        return {
+            "doc_id": doc_id,
+            "archivo_original": archivo.filename,
+            "n_paginas": len(pages_sorted),
+            "campos": campos,
+            "resumen": {
+                "total_campos": len(campos),
+                "necesitan_revision": sum(1 for f in campos.values() if f.get("needs_review")),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Error en el pipeline OCR: {str(e)}")
+
+
 @app.get("/ocr/resultados")
 def ocr_resultados():
     """Lista todos los documentos procesados por OCR con su resumen.
