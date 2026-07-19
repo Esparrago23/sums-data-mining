@@ -6,7 +6,7 @@ Contiene tres subcomponentes; **dos están construidos, probados y verificados**
 
 | Subcomp. | Qué es | Estado | Integración académica válida |
 |---|---|---|---|
-| **A** | OCR de cédulas PDF | ⏳ pendiente (post-MVP) | — |
+| **A** | OCR de cédulas PDF | ✅ listo e integrado a la API | — |
 | **B** | ETL + **modelo predictivo de riesgo** (3 modelos comparados) | ✅ listo y verificado | opción ① (ML con ≥3 modelos) |
 | **C** | **Motor de búsqueda** TF-IDF + BM25 con métricas de IR | ✅ listo y verificado | ✅ **opción ② — la integración central** |
 
@@ -98,6 +98,7 @@ La forma más limpia de meterlo al SUMS sin reescribir nada en Node es correr es
   SUMS_WEB (React)  ─┐                 ┌─ sums-API (Node/TS)  → PostgreSQL centro_medico_2026
   sums-mobile (Flutter) ─┼─ HTTP ─────┤
                           └────────────┴─ api_mineria.py (FastAPI)  ← este módulo
+                                            /ocr/*    (Subcomp. A)
                                             /buscar   (Subcomp. C)
                                             /riesgo/* (Subcomp. B)
 ```
@@ -115,14 +116,25 @@ Al arrancar carga el motor de búsqueda y entrena el modelo una vez. Endpoints:
 | Método | Ruta | Para qué |
 |---|---|---|
 | `GET` | `/salud` | healthcheck |
+| `POST` | `/ocr/procesar-cedula` | **extrae campos de una cédula PDF** (Subcomp. A) |
 | `GET` | `/buscar?q=...&motor=bm25&k=5` | **buscador de casos** (Subcomp. C) |
 | `POST` | `/riesgo/predecir` | clasifica UNA familia (Subcomp. B) |
 | `GET` | `/riesgo/lista?top=20` | lista priorizada de visitas (Subcomp. B) |
 
 Ejemplos `curl`:
 ```bash
+# Subcomponente A — OCR de cédula
+curl -X POST "http://localhost:8001/ocr/procesar-cedula" \
+     -F "archivo=@cedula_001.pdf"
+# -> {"doc_id":"cedula_a1b2c3d4","archivo_original":"cedula_001.pdf","n_paginas":2,
+#     "campos":{"vivienda.agua_entubada.si":{"type":"checkbox","value":true,...},...},
+#     "resumen":{"total_campos":45,"necesitan_revision":8}}
+
+# Subcomponente C — Buscador
 curl "http://localhost:8001/buscar?q=familias%20con%20desnutricion%20infantil&motor=bm25&k=5"
 curl "http://localhost:8001/riesgo/lista?top=10"
+
+# Subcomponente B — Riesgo
 curl -X POST "http://localhost:8001/riesgo/predecir" -H "Content-Type: application/json" \
   -d '{"numero_cuartos":1,"numero_habitantes":7,"personas_por_cuarto":7,"count_enfermedades_cronicas":3,"count_toxicomanias":2,"avg_dias_proteina":1,"avg_dias_frutas_verduras":1,"avg_dias_cereales":3,"ingreso_nivel":0,"escolaridad_promedio":0.5,"total_integrantes":7,"material_techo":"Lamina","material_paredes":"Madera","material_piso":"Tierra","manejo_excretas":"Letrina","cocina_ubicacion":"dentro_del_dormitorio","agua_entubada":false,"energia_electrica":false,"cocina_con_lena":true,"red_alcantarillado":false,"fosa_septica":false,"vacunacion_completa":false,"seguridad_social_jefe":false}'
 # -> {"modelo":"XGBoost","nivel_riesgo":"ALTO","probabilidad_alto":1.0}
