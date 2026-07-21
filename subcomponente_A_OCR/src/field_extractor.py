@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 
 from checkbox_model import answer_zone, predict_checkbox
+from horizontal_sheet_processor import extract_catalog_value_from_roi
 from preprocessor import PageImage, crop_relative
 
 
@@ -80,6 +81,20 @@ def extract_page(page: PageImage, fields: list[dict[str, Any]], roi_dir: Path) -
                     "component_count": pred.component_count,
                     "diagonal_ratio": pred.diagonal_ratio,
                 },
+            }
+        elif kind == "catalog":
+            roi_path = _save_roi(gray_roi, roi_dir, field_id)
+            catalog_field = field.get("catalog", field_id.split(".")[-1])
+            catalog_result = extract_catalog_value_from_roi(gray_roi, catalog_field)
+            out[field_id] = {
+                "type": kind,
+                "value": catalog_result.get("value"),
+                "confidence": 0.8 if catalog_result.get("matched") else 0.2,
+                "needs_review": not catalog_result.get("matched", False),
+                "roi": roi_path,
+                "catalog": catalog_field,
+                "raw_text": catalog_result.get("raw_text"),
+                "features": _ink_summary(bin_roi),
             }
         elif kind in {"number", "date", "text"}:
             roi_path = _save_roi(gray_roi, roi_dir, field_id)

@@ -122,6 +122,10 @@ def classify_page(binary: np.ndarray, box: tuple[int, int, int, int]) -> str:
     if form_height_ratio < 0.72 and aspect < 1.35:
         return "vacunacion"
 
+    # Hojas horizontales de composicion familiar o servicios de salud.
+    if aspect >= 1.35 and form_height_ratio < 0.82:
+        return "horizontal"
+
     # Paginas de composicion familiar escaneadas de lado: caja mas alta/estrecha.
     # En las muestras reales la pagina de vivienda ronda aspect~1.25, mientras
     # las tablas laterales de familia suelen rondar 1.35-1.45.
