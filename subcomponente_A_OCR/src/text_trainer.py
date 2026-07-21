@@ -75,10 +75,56 @@ def _clean_ocr_text(text: str) -> str:
     cleaned = cleaned.strip()
     if not cleaned:
         return ""
+    # Remover ruido típico de OCR como signos de puntuación aislados y marcas de plantilla.
+    cleaned = cleaned.replace("|", "")
+    cleaned = cleaned.replace("=", "")
+    cleaned = cleaned.replace("_", "")
+    cleaned = cleaned.replace("-", " ")
+    cleaned = cleaned.replace("~", " ")
+    cleaned = cleaned.replace("…", "")
+    cleaned = " ".join(cleaned.split())
     return cleaned
 
 
-def ocr_text_from_roi(path: str | Path, lang: str = "eng", psm: int = 7) -> str | None:
+def _score_ocr_candidate(text: str, confidences: list[int] | tuple[int, ...] | None = None) -> float:
+    if not text:
+        return 0.0
+    score = 0.0
+    words = [w for w in text.split() if len(w) > 1]
+    score += min(20.0, len(words) * 3.0)
+    score += sum(min(8.0, len(w)) for w in words) / max(1, len(words))
+    if confidences:
+        score += sum(float(c) for c in confidences[:3]) / max(1, len(confidences[:3])) / 20.0
+    # Penalizar texto mayormente no alfabético o muy corto.
+    alpha_ratio = sum(ch.isalpha() for ch in text) / max(1, len(text))
+    score *= 0.9 + 0.2 * alpha_ratio
+    return round(score, 4)
+
+
+def _preprocess_for_ocr(gray: np.ndarray) -> np.ndarray:
+    if gray is None or gray.size == 0:
+        return gray
+
+    # Mejorar contraste visual del texto manuscrito.
+    gray = cv2.equalizeHist(gray)
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    # Umbral adaptativo para separar mejor escritura del fondo.
+    thresh = cv2.adaptiveThreshold(
+        blur,
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        31,
+        10,
+    )
+    # Limpiar ruido pequeños.
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    return thresh
+
+
+def ocr_text_from_roi(path: str | Path, lang: str = "eng", psm: int = 6) -> str | None:
     gray = _imread_gray(path)
     if gray is None or gray.size == 0:
         return None
@@ -89,13 +135,28 @@ def ocr_text_from_roi(path: str | Path, lang: str = "eng", psm: int = 7) -> str 
         factor = max(1.0, 300.0 / float(width))
         gray = cv2.resize(gray, (int(width * factor), int(height * factor)), interpolation=cv2.INTER_CUBIC)
 
+    variants = []
+    variants.append(("adaptive", _preprocess_for_ocr(gray)))
     blur = cv2.GaussianBlur(gray, (3, 3), 0)
-    _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, otsu = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    variants.append(("otsu", otsu))
+    eq = cv2.equalizeHist(gray)
+    variants.append(("equalized", eq))
 
-    config = f"--oem 1 --psm {psm}"
-    text = pytesseract.image_to_string(thresh, lang=lang, config=config)
-    result = _clean_ocr_text(text)
-    return result if result else None
+    best_text = None
+    best_score = -1.0
+    for _, image in variants:
+        config = f"--oem 1 --psm {psm}"
+        text = pytesseract.image_to_string(image, lang=lang, config=config)
+        cleaned = _clean_ocr_text(text)
+        if not cleaned:
+            continue
+        score = _score_ocr_candidate(cleaned)
+        if score > best_score:
+            best_score = score
+            best_text = cleaned
+
+    return best_text if best_score > 2.5 else None
 
 
 def _labeled_rows(
