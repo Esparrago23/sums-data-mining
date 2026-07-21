@@ -12,9 +12,14 @@
 #     Windows: instalar Poppler y agregar bin/ al PATH
 # ============================================================================
 
-# --- OCR estructurado / visión (Subcomponente A) ---
-opencv-python          # cv2: binarización, contornos, HoughLines, overlays
-pymupdf                # fallback puro Python para renderizar PDFs si Poppler no esta disponible
+# --- OCR estructurado / visión (Subcomponente A) --- // De los requiriments.txt originales
+# opencv-python          # cv2: binarización, contornos, HoughLines, overlays // Esto solo funciona en una PC local
+# pymupdf                # fallback puro Python para renderizar PDFs si Poppler no esta disponible
+
+# --- OCR estructurado / visión (Subcomponente A) --- // Arreglados por la IA para el Deploy
+opencv-python-headless>=4.9.0  # cv2: binarización, contornos, HoughLines, overlays
+pymupdf>=1.24.0         # fallback puro Python para renderizar PDFs si Poppler no esta disponible
+pytesseract>=0.3.10     # usado por subcomponente_A_OCR/src/text_trainer.py
 
 # --- Datos / ML (Subcomponente B) ---
 numpy
@@ -38,3 +43,4 @@ fastapi                # probado con 0.138.1
 uvicorn[standard]      # probado con 0.49.0  (servidor ASGI)
 httpx                  # cliente para pruebas con TestClient
 python-multipart       # para procesar archivos en la API
+
