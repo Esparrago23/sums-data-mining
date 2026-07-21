@@ -13,8 +13,9 @@
 # ============================================================================
 
 # --- OCR estructurado / visión (Subcomponente A) ---
-opencv-python          # cv2: binarización, contornos, HoughLines, overlays
-pymupdf                # fallback puro Python para renderizar PDFs si Poppler no esta disponible
+opencv-python>=4.9.0    # cv2: binarización, contornos, HoughLines, overlays
+pymupdf>=1.24.0         # fallback puro Python para renderizar PDFs si Poppler no esta disponible
+pytesseract>=0.3.10     # usado por subcomponente_A_OCR/src/text_trainer.py (requiere el binario Tesseract OCR instalado en el sistema)
 
 # --- Datos / ML (Subcomponente B) ---
 numpy
@@ -24,17 +25,17 @@ xgboost>=2.0           # probado con 3.3.0
 
 # --- NLP / IR (Subcomponente C) ---
 spacy>=3.8,<3.9        # probado con 3.8.14  (+ modelo es_core_news_sm vía spacy download)
-nltk                   # SnowballStemmer para la comparación stemming-vs-lematización
+nltk>=3.8.1            # SnowballStemmer para la comparación stemming-vs-lematización (3.8.1 corrige CVE-2024-39705 al añadir --unsafe / sandboxing en downloader)
 
 # --- Visualización y entregable académico (notebooks) ---
-matplotlib
-seaborn
-jupyter
-nbconvert
-ipykernel
+matplotlib>=3.8.0
+seaborn>=0.13.0
+jupyter>=1.0.0
+nbconvert>=7.16.4       # fija CVE-2024-* de plantillas/XSS en export HTML
+ipykernel>=6.29.0
 
 # --- Integración (API de ejemplo: integracion/api_mineria.py) ---
-fastapi                # probado con 0.138.1
-uvicorn[standard]      # probado con 0.49.0  (servidor ASGI)
-httpx                  # cliente para pruebas con TestClient
-python-multipart       # para procesar archivos en la API
+fastapi>=0.115.0        # probado con 0.138.1
+uvicorn[standard]>=0.30.0  # probado con 0.49.0  (servidor ASGI)
+httpx>=0.27.0           # cliente para pruebas con TestClient
+python-multipart>=0.0.9  # >=0.0.9 corrige CVE-2024-24762 (ReDoS en parseo multipart)
