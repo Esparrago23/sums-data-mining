@@ -39,7 +39,6 @@ nbconvert>=7.16.4       # fija CVE-2024-* de plantillas/XSS en export HTML
 ipykernel>=6.29.0
 
 # --- Integración (API de ejemplo: integracion/api_mineria.py) ---
-<<<<<<< HEAD
 fastapi                # probado con 0.138.1
 uvicorn[standard]      # probado con 0.49.0  (servidor ASGI)
 httpx                  # cliente para pruebas con TestClient
