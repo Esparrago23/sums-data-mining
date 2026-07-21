@@ -13,8 +13,18 @@ Envuelve los dos componentes en endpoints HTTP que la Web (React) o la app
 
 Levantar en local:
   cd sums-data-mining/integracion
+  set MINERIA_API_KEY=una-clave-larga-y-secreta
+  set MINERIA_CORS_ORIGINS=http://localhost:5173,http://localhost:3000
   C:\\Users\\minis\\.venvs\\sums-mineria\\Scripts\\python.exe -m uvicorn api_mineria:app --reload --port 8001
   # Swagger interactivo en  http://localhost:8001/docs
+
+Seguridad:
+  - Todos los endpoints (excepto /salud) requieren el header `X-API-Key` con el
+    valor de la variable de entorno MINERIA_API_KEY. Si esta variable no está
+    definida, el servicio rechaza (503) todas las peticiones a esos endpoints.
+  - CORS solo permite los orígenes listados en MINERIA_CORS_ORIGINS (separados
+    por comas); si no se define, por defecto solo se permite el dev server de
+    Vite en http://localhost:5173.
 
 NOTA de arquitectura: esto corre como un MICROSERVICIO Python al lado de la
 sums-API (Node/TS). No reemplaza nada; el front llama a este servicio para las
@@ -23,7 +33,11 @@ campo `observaciones` real de las cédulas (ver build_corpus_desde_bd en el READ
 """
 from __future__ import annotations
 
+import hmac
 import json
+import logging
+import os
+import re
 import sys
 import uuid
 from contextlib import asynccontextmanager
@@ -31,10 +45,12 @@ from pathlib import Path
 from typing import Literal
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import Depends, FastAPI, Header, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+logger = logging.getLogger("sums.mineria")
 
 # ── Rutas del módulo ─────────────────────────────────────────────────────────
 RAIZ = Path(__file__).resolve().parent.parent           # sums-data-mining/
@@ -57,8 +73,56 @@ from pdf_renderer import render_pdf          # noqa: E402
 from preprocessor import normalize_page      # noqa: E402
 from field_extractor import extract_document, load_field_map  # noqa: E402
 from evaluator import evaluate_checkbox_fields  # noqa: E402
+from catalogos_sums import (  # noqa: E402
+    CAT_MATERIAL_TECHO_PAREDES, CAT_MATERIAL_PISO, CAT_MANEJO_EXCRETAS,
+)
 
 ESTADO: dict = {}
+
+# ── Seguridad: API key compartida (item 1 de la auditoría) ──────────────────
+# El microservicio se autentica con una API-key compartida leída de entorno.
+# Si la variable no está configurada, el servicio se niega a atender peticiones
+# a endpoints protegidos (fail-closed) en vez de arrancar sin autenticación.
+MINERIA_API_KEY = os.environ.get("MINERIA_API_KEY")
+
+
+def verificar_api_key(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> None:
+    """Dependencia FastAPI: exige el header `X-API-Key` con el valor de MINERIA_API_KEY.
+
+    Se aplica a todos los endpoints que procesan o exponen datos (ocr/*, riesgo/*,
+    corpus/*, buscar/*, catalogos, datos/*). `/salud` queda sin proteger para
+    permitir monitoreo básico (no expone datos de pacientes)."""
+    if not MINERIA_API_KEY:
+        logger.error("MINERIA_API_KEY no está configurada; rechazando petición por seguridad.")
+        raise HTTPException(status_code=503, detail="Servicio no configurado correctamente.")
+    # Comparación de tiempo constante (hmac.compare_digest) para evitar timing
+    # attacks; se descarta primero el caso x_api_key=None sin comparar cadenas.
+    if x_api_key is None or not hmac.compare_digest(x_api_key, MINERIA_API_KEY):
+        raise HTTPException(status_code=401, detail="API key inválida o faltante.")
+
+
+REQUIERE_API_KEY = [Depends(verificar_api_key)]
+
+# ── Seguridad: validación de subida de PDFs (item 4) ─────────────────────────
+MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
+PDF_MAGIC = b"%PDF-"
+
+# ── Seguridad: whitelist para segmentos de ruta usados en /ocr/roi (item 2) ──
+ID_SEGURO_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+async def _leer_y_validar_pdf(archivo: UploadFile) -> bytes:
+    """Lee el contenido del UploadFile validando tamaño máximo y firma %PDF- real
+    (no solo la extensión del nombre de archivo)."""
+    contenido = await archivo.read(MAX_PDF_BYTES + 1)
+    if len(contenido) > MAX_PDF_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El archivo excede el tamaño máximo permitido ({MAX_PDF_BYTES // (1024 * 1024)} MB).",
+        )
+    if not contenido.startswith(PDF_MAGIC):
+        raise HTTPException(status_code=400, detail="El archivo no es un PDF válido.")
+    return contenido
 
 
 @asynccontextmanager
@@ -97,9 +161,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="SUMS · API de Minería (Buscador + Riesgo)", version="1.0", lifespan=lifespan)
 
-# CORS abierto para desarrollo (la Web en localhost:5173 / Vite puede llamar).
+# CORS restringido: orígenes permitidos configurables por variable de entorno
+# MINERIA_CORS_ORIGINS (lista separada por comas). Si no se define, por defecto
+# solo se permite el origen de desarrollo local (Vite).
+_cors_origins_env = os.environ.get("MINERIA_CORS_ORIGINS", "")
+ALLOWED_ORIGINS = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] or [
+    "http://localhost:5173"
+]
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -142,7 +215,7 @@ def salud():
 # ─────────────────────────────────────────────────────────────────────────────
 # Subcomponente C — Buscador
 # ─────────────────────────────────────────────────────────────────────────────
-@app.get("/buscar")
+@app.get("/buscar", dependencies=REQUIERE_API_KEY)
 def buscar(q: str, motor: Literal["bm25", "tfidf"] = "bm25", k: int = 5):
     """Busca notas de observación relevantes a la consulta `q`.
 
@@ -189,12 +262,15 @@ class FamiliaFeatures(BaseModel):
     ingreso_nivel: int = 2
     escolaridad_promedio: float = 2.0
     total_integrantes: int = 4
-    # categóricas (valores oficiales de la cédula)
-    material_techo: str = "Concreto o cemento"
-    material_paredes: str = "Concreto o cemento"
-    material_piso: str = "Concreto o cemento"
-    manejo_excretas: str = "WC"
-    cocina_ubicacion: str = "fuera_del_dormitorio"
+    # categóricas (valores oficiales de la cédula; Literal validado contra el
+    # catálogo real de subcomponente_B_ETL_Risk/src/catalogos_sums.py)
+    material_techo: Literal[tuple(CAT_MATERIAL_TECHO_PAREDES)] = "Concreto o cemento"
+    material_paredes: Literal[tuple(CAT_MATERIAL_TECHO_PAREDES)] = "Concreto o cemento"
+    material_piso: Literal[tuple(CAT_MATERIAL_PISO)] = "Concreto o cemento"
+    manejo_excretas: Literal[tuple(CAT_MANEJO_EXCRETAS)] = "WC"
+    # cocina_ubicacion no tiene tabla de catálogo propia (no está en
+    # catalogos_sums.py): es un enum fijo de 2 valores, ver BD_MAPPING.md.
+    cocina_ubicacion: Literal["fuera_del_dormitorio", "dentro_del_dormitorio"] = "fuera_del_dormitorio"
     # booleanas
     agua_entubada: bool = True
     energia_electrica: bool = True
@@ -204,8 +280,17 @@ class FamiliaFeatures(BaseModel):
     vacunacion_completa: bool = True
     seguridad_social_jefe: bool = False
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def _strip_str_fields(cls, v):
+        """Item 7: recorta espacios de cualquier campo string antes de validar
+        (incluye validación de Literal, para tolerar '  WC ' -> 'WC')."""
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
-@app.post("/riesgo/predecir")
+
+@app.post("/riesgo/predecir", dependencies=REQUIERE_API_KEY)
 def predecir(fam: FamiliaFeatures):
     """Clasifica el nivel de riesgo (ALTO/MEDIO/BAJO) de UNA familia + prob. de ALTO."""
     fila = pd.DataFrame([fam.model_dump()])[FEATURES]
@@ -217,7 +302,7 @@ def predecir(fam: FamiliaFeatures):
     }
 
 
-@app.get("/riesgo/lista")
+@app.get("/riesgo/lista", dependencies=REQUIERE_API_KEY)
 def lista_visitas(top: int = 20):
     """Devuelve la lista priorizada de visitas (familias ALTO, más urgentes primero)."""
     lista = ESTADO.get("lista")
@@ -231,7 +316,7 @@ def lista_visitas(top: int = 20):
 # ─────────────────────────────────────────────────────────────────────────────
 # Subcomponente A — OCR
 # ─────────────────────────────────────────────────────────────────────────────
-@app.post("/ocr/procesar")
+@app.post("/ocr/procesar", dependencies=REQUIERE_API_KEY)
 async def ocr_procesar(archivo: UploadFile = File(...)):
     """Recibe un PDF de cédula escaneada, ejecuta el pipeline OCR completo.
 
@@ -265,7 +350,7 @@ async def ocr_procesar(archivo: UploadFile = File(...)):
     rendered_dir.mkdir(parents=True, exist_ok=True)
 
     tmp_pdf = processed_dir / f"{doc_id}.pdf"
-    contenido = await archivo.read()
+    contenido = await _leer_y_validar_pdf(archivo)
     tmp_pdf.write_bytes(contenido)
 
     try:
@@ -298,11 +383,16 @@ async def ocr_procesar(archivo: UploadFile = File(...)):
                 ),
             },
         }
-    except Exception as e:
-        raise HTTPException(500, f"Error procesando OCR: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        # Item 3: no filtrar el detalle interno de la excepción al cliente;
+        # se registra completo en el log del servidor.
+        logger.exception("Error procesando OCR (doc_id=%s)", doc_id)
+        raise HTTPException(500, "Error interno procesando el documento OCR.")
 
 
-@app.post("/ocr/procesar-cedula")
+@app.post("/ocr/procesar-cedula", dependencies=REQUIERE_API_KEY)
 async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
     """Recibe un PDF de cédula escaneada y extrae todos sus campos estructurados.
 
@@ -354,7 +444,7 @@ async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
     rendered_dir.mkdir(parents=True, exist_ok=True)
 
     tmp_pdf = processed_dir / f"{doc_id}.pdf"
-    contenido = await archivo.read()
+    contenido = await _leer_y_validar_pdf(archivo)
     tmp_pdf.write_bytes(contenido)
 
     try:
@@ -385,11 +475,16 @@ async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
                 "necesitan_revision": sum(1 for f in campos.values() if f.get("needs_review")),
             },
         }
-    except Exception as e:
-        raise HTTPException(500, f"Error en el pipeline OCR: {str(e)}")
+    except HTTPException:
+        raise
+    except Exception:
+        # Item 3: no filtrar el detalle interno de la excepción al cliente;
+        # se registra completo en el log del servidor.
+        logger.exception("Error en el pipeline OCR (doc_id=%s)", doc_id)
+        raise HTTPException(500, "Error interno en el pipeline OCR.")
 
 
-@app.get("/ocr/resultados")
+@app.get("/ocr/resultados", dependencies=REQUIERE_API_KEY)
 def ocr_resultados():
     """Lista todos los documentos procesados por OCR con su resumen.
 
@@ -413,7 +508,7 @@ def ocr_resultados():
     return {"documentos": docs}
 
 
-@app.get("/ocr/resultados/{doc_id}")
+@app.get("/ocr/resultados/{doc_id}", dependencies=REQUIERE_API_KEY)
 def ocr_resultado_detalle(doc_id: str):
     """Devuelve los campos extraídos de un documento específico.
 
@@ -432,7 +527,7 @@ def ocr_resultado_detalle(doc_id: str):
     return {"doc_id": doc_id, "campos": doc_data.get("fields", {})}
 
 
-@app.get("/ocr/roi/{doc_id}/{field_id}")
+@app.get("/ocr/roi/{doc_id}/{field_id}", dependencies=REQUIERE_API_KEY)
 def ocr_roi_imagen(doc_id: str, field_id: str):
     """Sirve la imagen ROI recortada de un campo para revisión humana.
 
@@ -441,15 +536,31 @@ def ocr_roi_imagen(doc_id: str, field_id: str):
 
     Output: imagen PNG (FileResponse)
     """
-    roi_dir = Path(ESTADO.get("ocr_processed_dir", "")) / "rois" / doc_id
-    # Los ROIs pueden estar en subcarpetas por página
-    for roi_file in roi_dir.rglob(f"{field_id}*.png"):
-        return FileResponse(str(roi_file), media_type="image/png")
+    # Item 2: whitelist estricta contra path traversal (doc_id/field_id se usan
+    # para construir rutas de archivo; '..', '/', '\\' quedan rechazados).
+    if not ID_SEGURO_RE.match(doc_id) or not ID_SEGURO_RE.match(field_id):
+        raise HTTPException(400, "doc_id/field_id inválidos: solo se permite [a-zA-Z0-9_-]+.")
+
+    rois_base = Path(ESTADO.get("ocr_processed_dir", "")) / "rois"
+    rois_base_resuelto = rois_base.resolve()
+    roi_dir = (rois_base / doc_id).resolve()
+
+    # Defensa en profundidad: aunque la regex ya bloquea '..', se verifica que
+    # la ruta resultante siga dentro del directorio base esperado.
+    if not roi_dir.is_relative_to(rois_base_resuelto):
+        raise HTTPException(400, "Ruta fuera del directorio permitido.")
+
+    if roi_dir.is_dir():
+        for roi_file in roi_dir.rglob(f"{field_id}*.png"):
+            roi_file_resuelto = roi_file.resolve()
+            if not roi_file_resuelto.is_relative_to(rois_base_resuelto):
+                continue
+            return FileResponse(str(roi_file_resuelto), media_type="image/png")
 
     raise HTTPException(404, f"ROI no encontrado para {doc_id}/{field_id}")
 
 
-@app.get("/ocr/campos-template")
+@app.get("/ocr/campos-template", dependencies=REQUIERE_API_KEY)
 def ocr_campos_template():
     """Devuelve la definición de campos del template OCR.
 
@@ -467,7 +578,7 @@ def ocr_campos_template():
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints Adicionales Riesgo (Subcomponente B)
 # ─────────────────────────────────────────────────────────────────────────────
-@app.get("/riesgo/metricas")
+@app.get("/riesgo/metricas", dependencies=REQUIERE_API_KEY)
 def riesgo_metricas():
     """Devuelve la tabla de comparación de los 3 modelos entrenados.
 
@@ -502,7 +613,7 @@ class LoteFamilias(BaseModel):
     familias: list[FamiliaFeatures]
 
 
-@app.post("/riesgo/predecir-lote")
+@app.post("/riesgo/predecir-lote", dependencies=REQUIERE_API_KEY)
 def predecir_lote(lote: LoteFamilias):
     """Clasifica el riesgo de MÚLTIPLES familias en una sola llamada.
 
@@ -532,7 +643,7 @@ def predecir_lote(lote: LoteFamilias):
     }
 
 
-@app.get("/riesgo/modelo-info")
+@app.get("/riesgo/modelo-info", dependencies=REQUIERE_API_KEY)
 def modelo_info():
     """Información detallada del modelo de riesgo activo.
 
@@ -561,7 +672,7 @@ def modelo_info():
     }
 
 
-@app.get("/riesgo/graficas/{tipo}")
+@app.get("/riesgo/graficas/{tipo}", dependencies=REQUIERE_API_KEY)
 def riesgo_graficas(tipo: Literal["confusion_matrix", "feature_importance"]):
     """Sirve las gráficas PNG generadas durante el entrenamiento.
 
@@ -576,7 +687,7 @@ def riesgo_graficas(tipo: Literal["confusion_matrix", "feature_importance"]):
     return FileResponse(str(archivo), media_type="image/png")
 
 
-@app.get("/catalogos")
+@app.get("/catalogos", dependencies=REQUIERE_API_KEY)
 def obtener_catalogos():
     """Devuelve TODOS los catálogos oficiales de la cédula SUMS.
 
@@ -618,7 +729,7 @@ def obtener_catalogos():
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoints Adicionales Búsqueda (Subcomponente C)
 # ─────────────────────────────────────────────────────────────────────────────
-@app.get("/corpus/estadisticas")
+@app.get("/corpus/estadisticas", dependencies=REQUIERE_API_KEY)
 def corpus_estadisticas():
     """Estadísticas del corpus de búsqueda indexado.
 
@@ -653,7 +764,7 @@ def corpus_estadisticas():
     }
 
 
-@app.get("/corpus/documento/{doc_id}")
+@app.get("/corpus/documento/{doc_id}", dependencies=REQUIERE_API_KEY)
 def obtener_documento(doc_id: str):
     """Devuelve un documento específico del corpus por su ID.
 
@@ -671,7 +782,7 @@ def obtener_documento(doc_id: str):
     }
 
 
-@app.get("/buscar/metricas")
+@app.get("/buscar/metricas", dependencies=REQUIERE_API_KEY)
 def buscar_metricas():
     """Ejecuta la evaluación IR de ambos motores con los 8 queries de prueba.
 
@@ -731,7 +842,7 @@ class CorpusConfig(BaseModel):
     n_documentos: int = Field(150, ge=10, le=500)
 
 
-@app.post("/corpus/reindexar")
+@app.post("/corpus/reindexar", dependencies=REQUIERE_API_KEY)
 def corpus_reindexar(config: CorpusConfig):
     """Reconstruye el corpus y reindexa ambos motores de búsqueda.
 
@@ -772,7 +883,7 @@ def corpus_reindexar(config: CorpusConfig):
 # ─────────────────────────────────────────────────────────────────────────────
 # Endpoint de Datos / Generación
 # ─────────────────────────────────────────────────────────────────────────────
-@app.get("/datos/estadisticas")
+@app.get("/datos/estadisticas", dependencies=REQUIERE_API_KEY)
 def datos_estadisticas():
     """Resumen del dataset usado para entrenar el modelo de riesgo.
 
