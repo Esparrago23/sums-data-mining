@@ -26,15 +26,70 @@ NOTA: para datos "reales" preferir load_to_bd.py (reutiliza la lógica del backe
 
 import argparse
 import json
+import logging
 import os
+import re
 import sys
+from datetime import date
 from pathlib import Path
 
 try:
     import psycopg2
+    from psycopg2 import sql
     from psycopg2.extras import RealDictCursor
 except ImportError:
     sys.exit("Falta 'psycopg2'. Instala con: pip install psycopg2-binary")
+
+logger = logging.getLogger("sums.load_to_bd_sql")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+# ─── Validación de fechas (items 8 y 11) ──────────────────────────────────────
+
+MAX_EDAD_ANIOS = 120
+_WS_RE = re.compile(r"\s+")
+
+
+def _normalizar_texto(value: str) -> str:
+    """Item 10: normalización agresiva para comparar catálogos (strip + lower +
+    colapsar espacios internos), evitando duplicados como 'Concreto  o cemento'
+    vs 'Concreto o cemento'."""
+    return _WS_RE.sub(" ", value.strip()).lower()
+
+
+def validar_fecha_iso(valor, campo: str, *, permitir_futura: bool = False,
+                       max_anios: int = MAX_EDAD_ANIOS, min_fecha: "date | None" = None):
+    """Valida que `valor` sea una fecha ISO-8601 (YYYY-MM-DD) plausible.
+
+    - Rechaza formato inválido.
+    - Rechaza fechas futuras (salvo permitir_futura=True).
+    - Rechaza fechas de más de `max_anios` años de antigüedad (evita typos como
+      año 1899 en vez de 1999).
+    - Si se da `min_fecha`, exige que `valor` no sea anterior a ella (usado para
+      coherencia fecha_nacimiento <= fecha_aplicacion/fecha_registro).
+
+    Lanza ValueError con mensaje claro ante cualquier violación.
+    """
+    if valor is None or str(valor).strip() == "":
+        raise ValueError(f"Campo '{campo}' es obligatorio y no puede estar vacío.")
+    try:
+        fecha = date.fromisoformat(str(valor).strip())
+    except ValueError as e:
+        raise ValueError(f"Campo '{campo}' = '{valor}' no es una fecha ISO-8601 válida (YYYY-MM-DD): {e}")
+
+    hoy = date.today()
+    if not permitir_futura and fecha > hoy:
+        raise ValueError(f"Campo '{campo}' = '{fecha}' no puede ser una fecha futura (hoy={hoy}).")
+
+    limite_antiguo = date(hoy.year - max_anios, hoy.month, hoy.day)
+    if fecha < limite_antiguo:
+        raise ValueError(
+            f"Campo '{campo}' = '{fecha}' implica más de {max_anios} años de antigüedad; revise el dato."
+        )
+
+    if min_fecha is not None and fecha < min_fecha:
+        raise ValueError(f"Campo '{campo}' = '{fecha}' no puede ser anterior a {min_fecha}.")
+
+    return fecha
 
 
 # ─── Resolución de catálogos (find-or-create con caché) ──────────────────────
@@ -43,31 +98,57 @@ _cache = {}
 
 
 def find_or_create(cur, table, id_col, label_col, value):
+    """Resuelve (o crea) la fila de catálogo para `value` en `table`.
+
+    Item 9: los nombres de tabla/columna (constantes internas del código, NUNCA
+    provistas por el usuario) se interpolan con psycopg2.sql.Identifier() en vez
+    de f-strings, como defensa adicional en profundidad.
+
+    Item 10: la comparación normaliza agresivamente (strip + lower + colapsar
+    espacios) tanto el valor de entrada como el valor almacenado, para no crear
+    duplicados por diferencias triviales de espaciado/capitalización. Si aun así
+    no hay coincidencia, se loguea explícitamente que se crea una fila nueva.
+    """
     if value is None:
         return None
     value = str(value).strip()
     if not value or value.lower() == 'na':
         return None
 
-    key = (table, value.lower())
+    normalizado = _normalizar_texto(value)
+    key = (table, normalizado)
     if key in _cache:
         return _cache[key]
 
-    cur.execute(
-        f"SELECT {id_col} AS id FROM {table} WHERE LOWER({label_col}) = LOWER(%s) LIMIT 1;",
-        (value,),
+    select_query = sql.SQL(
+        "SELECT {id_col} AS id FROM {table} "
+        "WHERE LOWER(REGEXP_REPLACE(TRIM({label_col}), '\\s+', ' ', 'g')) = %s LIMIT 1;"
+    ).format(
+        id_col=sql.Identifier(id_col),
+        table=sql.Identifier(table),
+        label_col=sql.Identifier(label_col),
     )
+    cur.execute(select_query, (normalizado,))
     row = cur.fetchone()
     if row:
         _cache[key] = row['id']
         return row['id']
 
-    cur.execute(
-        f"INSERT INTO {table} ({label_col}) VALUES (%s) "
-        f"ON CONFLICT ({label_col}) DO UPDATE SET {label_col} = EXCLUDED.{label_col} "
-        f"RETURNING {id_col} AS id;",
-        (value,),
+    logger.info(
+        "find_or_create: valor '%s' (normalizado='%s') no coincide con ninguna fila "
+        "existente en '%s.%s'; se creará una entrada NUEVA en el catálogo.",
+        value, normalizado, table, label_col,
     )
+    insert_query = sql.SQL(
+        "INSERT INTO {table} ({label_col}) VALUES (%s) "
+        "ON CONFLICT ({label_col}) DO UPDATE SET {label_col} = EXCLUDED.{label_col} "
+        "RETURNING {id_col} AS id;"
+    ).format(
+        table=sql.Identifier(table),
+        label_col=sql.Identifier(label_col),
+        id_col=sql.Identifier(id_col),
+    )
+    cur.execute(insert_query, (value,))
     new_id = cur.fetchone()['id']
     _cache[key] = new_id
     return new_id
@@ -100,6 +181,11 @@ def tamizaje_bool(value):
 def insertar_familia(cur, payload):
     fam = payload['familia']
     viv = payload['vivienda']
+
+    # Items 8 y 11: la fecha de registro de la cédula debe ser una fecha ISO
+    # plausible; la coherencia contra fecha_nacimiento de cada integrante se
+    # valida más abajo, integrante por integrante.
+    fecha_registro_cedula = validar_fecha_iso(payload['fecha_registro'], 'fecha_registro')
 
     # 1) nucleo_familiar
     comentarios = f"Informante: {fam['informante_nombre']} | Rol: {fam['rol_informante']}"
@@ -158,9 +244,14 @@ def insertar_familia(cur, payload):
 
     # 6) integrantes
     persona_by_name = {}
+    nacimientos = {}
     for integrante in payload['integrantes']:
-        persona_id = insertar_integrante(cur, nucleo_id, integrante)
-        persona_by_name[integrante['nombre'].strip().lower()] = persona_id
+        persona_id, fecha_nacimiento = insertar_integrante(
+            cur, nucleo_id, integrante, fecha_referencia=fecha_registro_cedula,
+        )
+        clave = integrante['nombre'].strip().lower()
+        persona_by_name[clave] = persona_id
+        nacimientos[clave] = fecha_nacimiento
 
     # 7) cedula
     cur.execute(
@@ -168,7 +259,7 @@ def insertar_familia(cur, payload):
                nucleo_familiar_id, fecha_registro, estado, observaciones)
            VALUES (%s, %s, NULL, %s, %s, %s, %s) RETURNING id_cedula AS id;""",
         (payload['unidad_salud_id'], payload['entrevistador_id'], nucleo_id,
-         payload['fecha_registro'], payload['estado'], payload.get('observaciones')),
+         fecha_registro_cedula, payload['estado'], payload.get('observaciones')),
     )
     cedula_id = cur.fetchone()['id']
 
@@ -177,11 +268,18 @@ def insertar_familia(cur, payload):
     vac = payload.get('vacunacion', {})
     if vac.get('se_aplico_vacuna'):
         for v in vac.get('vacunas', []):
-            persona_id = persona_by_name.get(str(v.get('paciente', '')).strip().lower())
+            paciente_key = str(v.get('paciente', '')).strip().lower()
+            persona_id = persona_by_name.get(paciente_key)
             if not persona_id:
                 continue
             vacuna_id = find_or_create(cur, 'vacuna', 'id_vacuna', 'nombre', v['vacuna'])
             dosis_id = find_or_create(cur, 'cat_dosis', 'id_dosis', 'nombre', v.get('dosis'))
+            # Items 8 y 11: la fecha de aplicación debe ser ISO válida, no futura,
+            # y no puede ser anterior a la fecha de nacimiento del paciente.
+            fecha_aplicacion = validar_fecha_iso(
+                v.get('fecha_aplicacion'), 'fecha_aplicacion',
+                min_fecha=nacimientos.get(paciente_key),
+            )
             cur.execute(
                 "INSERT INTO esquema_vacunacion (persona_id, unidad_salud_id, fecha_registro) "
                 "VALUES (%s, %s, CURRENT_DATE) RETURNING id_esquema_vacunacion AS id;",
@@ -191,14 +289,24 @@ def insertar_familia(cur, payload):
             cur.execute(
                 "INSERT INTO inmunizacion (esquema_vacunacion_id, cedula_id, vacuna_id, dosis_id, fecha_aplicacion) "
                 "VALUES (%s, %s, %s, %s, %s);",
-                (esquema_id, cedula_id, vacuna_id, dosis_id, v.get('fecha_aplicacion')),
+                (esquema_id, cedula_id, vacuna_id, dosis_id, fecha_aplicacion),
             )
             n_inm += 1
 
     return {'cedula_id': cedula_id, 'nucleo_familiar_id': nucleo_id, 'n_inmunizaciones': n_inm}
 
 
-def insertar_integrante(cur, nucleo_id, integrante):
+def insertar_integrante(cur, nucleo_id, integrante, fecha_referencia=None):
+    # Items 8 y 11: fecha_nacimiento debe ser ISO válida, plausible (no futura,
+    # no > 120 años), y no posterior a `fecha_referencia` (la fecha de registro
+    # de la cédula) — evita nacer "después" de que la familia fue registrada.
+    fecha_nacimiento = validar_fecha_iso(integrante['fecha_nacimiento'], 'fecha_nacimiento')
+    if fecha_referencia is not None and fecha_referencia < fecha_nacimiento:
+        raise ValueError(
+            f"Coherencia de fechas: fecha_registro ({fecha_referencia}) es anterior a la "
+            f"fecha_nacimiento de '{integrante['nombre']}' ({fecha_nacimiento})."
+        )
+
     estado_civil_id = find_or_create(cur, 'cat_estado_civil', 'id_estado_civil', 'nombre', integrante.get('estado_civil'))
     lengua_id = find_or_create(cur, 'cat_lengua', 'id_lengua', 'nombre', integrante.get('lengua'))
     escolaridad_id = find_or_create(cur, 'cat_escolaridad', 'id_escolaridad', 'nombre', integrante.get('escolaridad'))
@@ -210,7 +318,7 @@ def insertar_integrante(cur, nucleo_id, integrante):
         """INSERT INTO persona (primer_nombre, segundo_nombre, apellido_paterno, apellido_materno,
                fecha_nacimiento, sexo, estado_civil_id, alfabetizacion, fecha_registro)
            VALUES (%s,%s,%s,%s,%s,%s,%s,%s, NOW()) RETURNING id_persona AS id;""",
-        (pn, sn, ap, am, integrante['fecha_nacimiento'], integrante['sexo'],
+        (pn, sn, ap, am, fecha_nacimiento, integrante['sexo'],
          estado_civil_id, integrante.get('alfabetizacion')),
     )
     persona_id = cur.fetchone()['id']
@@ -311,7 +419,7 @@ def insertar_integrante(cur, nucleo_id, integrante):
         "VALUES (%s, %s, %s, NOW()) ON CONFLICT (nucleo_familiar_id, persona_id) DO NOTHING;",
         (nucleo_id, persona_id, parentesco_id),
     )
-    return persona_id
+    return persona_id, fecha_nacimiento
 
 
 def main():
