@@ -1,0 +1,145 @@
+# ==============================================================================
+# Dockerfile.ocr — Subcomponente A: OCR de cédulas PDF
+# ==============================================================================
+# Imagen dedicada para ejecutar el pipeline de extracción de texto en:
+#   - Raspberry Pi 4 (ARM64 / aarch64) con Ubuntu Server
+#   - Cualquier servidor Linux x86_64
+#
+# Motor principal: PaddleOCR (PP-OCRv4, CPU-only)
+# Fallback:        Tesseract OCR
+#
+# Construir:
+#   docker build -f docker/Dockerfile.ocr -t sums-ocr:latest .
+#
+# Ejecutar pipeline completo:
+#   docker run --rm \
+#     -v $(pwd)/subcomponente_A_OCR/data:/app/data \
+#     sums-ocr:latest
+#
+# Ejecutar con variables de entorno opcionales:
+#   docker run --rm \
+#     -e DEEPSEEK_API_KEY=sk-... \
+#     -v $(pwd)/subcomponente_A_OCR/data:/app/data \
+#     sums-ocr:latest
+# ==============================================================================
+
+# Python 3.11: última versión con soporte oficial de PaddlePaddle 2.6.x wheels.
+# NO usar 3.12/3.13 hasta que PaddlePaddle publique wheels oficiales para esas versiones.
+FROM python:3.11-slim
+
+# ---------------------------------------------------------------------------
+# Metadatos
+# ---------------------------------------------------------------------------
+LABEL maintainer="SUMS-DataMining Team"
+LABEL description="Subcomponente A — OCR de cédulas PDF con PaddleOCR + Tesseract"
+LABEL version="2.0"
+
+# ---------------------------------------------------------------------------
+# Variables de entorno
+# ---------------------------------------------------------------------------
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Directorio de trabajo dentro del contenedor.
+ENV WORKDIR=/app/subcomponente_A_OCR
+WORKDIR ${WORKDIR}
+
+# PaddleOCR descargará modelos al primer arranque; los guarda en ~/.paddleocr.
+# Redirigir al directorio de trabajo para persistir entre contenedores con bind mount.
+ENV PADDLEOCR_HOME=${WORKDIR}/.paddleocr_models
+ENV HOME=/root
+
+# Suprimir warnings de PaddlePaddle sobre GPU no disponible.
+ENV FLAGS_use_cuda=0
+ENV CUDA_VISIBLE_DEVICES=""
+
+# ---------------------------------------------------------------------------
+# Dependencias del sistema operativo
+# ---------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # --- Renderizado de PDFs ---
+    poppler-utils \
+    # --- Tesseract OCR (fallback) con modelo español ---
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    # --- OpenCV headless (librerías compartidas necesarias) ---
+    libglib2.0-0 \
+    libgl1 \
+    # --- PaddlePaddle en ARM64: requiere OpenMP ---
+    libgomp1 \
+    # --- Herramientas de red para descarga de modelos PaddleOCR ---
+    curl \
+    ca-certificates \
+    # --- Compilación de extensiones Python (algunas deps de paddleocr) ---
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------------------
+# Instalación de Python: PaddlePaddle primero (wheel específico)
+# ---------------------------------------------------------------------------
+# Se instala paddlepaddle ANTES que el resto para evitar conflictos de
+# resolución de dependencias. El flag --no-deps evita que pip intente
+# sobreescribir versiones ya instaladas de numpy/protobuf con versiones
+# incompatibles de paddlepaddle.
+#
+# ARM64 (Raspberry Pi 4 / aarch64):
+#   El índice oficial de PaddlePaddle para Linux ARM64 CPU-only:
+#   https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html
+#   Si la Raspberry usa ARMv8 sin AVX (normal), usar:
+#   https://www.paddlepaddle.org.cn/whl/linux/cpu-mkl-open/stable.html
+#
+# x86_64 Linux: el wheel está en PyPI directamente.
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+        "paddlepaddle>=2.6.2" \
+        --extra-index-url https://www.paddlepaddle.org.cn/whl/linux/cpu-mkl-open/stable.html \
+    || pip install --no-cache-dir "paddlepaddle>=2.6.2"
+
+# ---------------------------------------------------------------------------
+# Resto de dependencias del subcomponente A
+# ---------------------------------------------------------------------------
+COPY subcomponente_A_OCR/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ---------------------------------------------------------------------------
+# Código fuente (SÓLO subcomponente A — cumple restricción de aislamiento)
+# ---------------------------------------------------------------------------
+COPY subcomponente_A_OCR/src/       ./src/
+COPY subcomponente_A_OCR/config/    ./config/
+COPY subcomponente_A_OCR/data/      ./data/
+
+# ---------------------------------------------------------------------------
+# Pre-descarga de modelos PaddleOCR en tiempo de build
+# (evita latencia en el primer arranque del contenedor)
+# ---------------------------------------------------------------------------
+RUN python -c " \
+import os; \
+os.makedirs('${PADDLEOCR_HOME}', exist_ok=True); \
+try: \
+    from paddleocr import PaddleOCR; \
+    PaddleOCR(lang='es', use_gpu=False, show_log=False); \
+    print('[Docker] Modelos PaddleOCR descargados correctamente.'); \
+except Exception as e: \
+    print(f'[Docker] Advertencia: no se pudieron pre-descargar modelos PaddleOCR: {e}'); \
+    print('[Docker] Los modelos se descargarán en el primer arranque.'); \
+"
+
+# ---------------------------------------------------------------------------
+# Healthcheck: verificar que el motor OCR carga sin errores
+# ---------------------------------------------------------------------------
+HEALTHCHECK --interval=60s --timeout=30s --start-period=30s --retries=2 \
+    CMD python -c "from paddle_extractor import get_ocr_engine; e = get_ocr_engine(); print('OK' if e.is_available else 'WARN: NullOCREngine')" \
+    || exit 1
+
+# ---------------------------------------------------------------------------
+# Entrypoint
+# ---------------------------------------------------------------------------
+# Por defecto ejecuta el pipeline completo sobre data/raw_pdfs/.
+# Montar volumen externo para persistir resultados:
+#   docker run -v /host/data:/app/subcomponente_A_OCR/data sums-ocr:latest
+CMD ["python", "src/run_all.py", \
+     "--raw-dir",       "data/raw_pdfs", \
+     "--processed-dir", "data/processed", \
+     "--field-map",     "config/field_map_sums.json", \
+     "--ground-truth",  "data/ground_truth/campos_esperados.json", \
+     "--dpi",           "180"]

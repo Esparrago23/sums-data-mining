@@ -72,8 +72,23 @@ def _save_binary_roi(binary_roi: np.ndarray, out_dir: Path, field_id: str) -> st
     return str(out)
 
 
-def extract_page(page: PageImage, fields: list[dict[str, Any]], roi_dir: Path) -> dict[str, Any]:
-    """Extrae todos los campos aplicables a una pagina normalizada."""
+def extract_page(
+    page: PageImage,
+    fields: list[dict[str, Any]],
+    roi_dir: Path,
+    *,
+    page_source: str | None = None,
+) -> dict[str, Any]:
+    """Extrae todos los campos aplicables a una pagina normalizada.
+
+    Args:
+        page:        Imagen normalizada de la pagina.
+        fields:      Lista de campos de la plantilla para esta pagina.
+        roi_dir:     Directorio donde se guardan los recortes ROI.
+        page_source: Path absoluto al PNG de la pagina completa. Se embebe
+                     en los campos de texto para que ``apply_paddle_text``
+                     pueda cargar la imagen sin buscar en el meta de paginas.
+    """
     out: dict[str, Any] = {}
     for field in fields:
         field_id = field["id"]
@@ -117,7 +132,7 @@ def extract_page(page: PageImage, fields: list[dict[str, Any]], roi_dir: Path) -
             }
         elif kind in {"number", "date", "text"}:
             roi_path = _save_roi(gray_roi, roi_dir, field_id)
-            out[field_id] = {
+            field_entry: dict[str, Any] = {
                 "type": kind,
                 "value": None,
                 "confidence": 0.0,
@@ -125,6 +140,12 @@ def extract_page(page: PageImage, fields: list[dict[str, Any]], roi_dir: Path) -
                 "roi": roi_path,
                 "features": _ink_summary(bin_roi),
             }
+            # Embeber referencia a la imagen completa y form_box para que
+            # apply_paddle_text pueda cargar la pagina sin iterar metadatos.
+            if kind == "text" and page_source is not None:
+                field_entry["_page_source"] = page_source
+                field_entry["_form_box"] = list(page.form_box)
+            out[field_id] = field_entry
         else:
             out[field_id] = {
                 "type": kind,
@@ -169,7 +190,12 @@ def extract_document(
             fields = field_map.get("pages", {}).get("1", []) if page_index == datos_page_index else []
         if fields is None:
             fields = field_map.get("pages", {}).get(str(page_index), [])
-        page_result = extract_page(page, fields, roi_dir / f"page_{page_index}")
+        page_result = extract_page(
+            page,
+            fields,
+            roi_dir / f"page_{page_index}",
+            page_source=str(page.source),
+        )
         document["pages"][str(page_index)] = {
             "source": str(page.source),
             "kind": page.page_kind,
