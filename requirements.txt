@@ -13,7 +13,7 @@
 # ============================================================================
 
 # --- OCR estructurado / visión (Subcomponente A) ---
-opencv-python>=4.9.0    # cv2: binarización, contornos, HoughLines, overlays
+opencv-python-headless>=4.9.0  # cv2: binarización, contornos, HoughLines, overlays (headless: no se usa GUI de cv2 en este proyecto, evita depender de libGL en la imagen Docker)
 pymupdf>=1.24.0         # fallback puro Python para renderizar PDFs si Poppler no esta disponible
 pytesseract>=0.3.10     # usado por subcomponente_A_OCR/src/text_trainer.py (requiere el binario Tesseract OCR instalado en el sistema)
 

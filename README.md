@@ -156,21 +156,15 @@ async function buscar(q: string) {
 
 Se monta como una página más del router (ej. `/buscador`) junto a `DashboardPage` y `CapturaOcrPage`, reutilizando el patrón atoms/molecules/organisms que ya tienes.
 
-### 4.3 Conectar el buscador a datos REALES (campo `observaciones`)
+### 4.3 Conectar el buscador a datos REALES (campo `observaciones`) — ✅ IMPLEMENTADO
 
-Hoy el corpus son notas sintéticas. En producción, el corpus = el **texto libre que escriben los encuestadores** (campo `observaciones` de cada cédula, o un futuro campo "notas de visita"). Solo cambias la **fuente del corpus** y reusas todo lo demás:
+`/buscar` (150 notas benchmark sintéticas, con qrels/métricas para la materia) sigue existiendo tal cual — sirve para demostrar la técnica, pero está desconectado de cualquier familia real. Para el caso de uso real ("busco 'enfermedad rara' y me regresan las cédulas que aplican") ya existe un builder separado que indexa el **texto real que escriben los encuestadores**: el campo `observaciones` de cada familia en `families_full.json` (enriquecido por `subcomponente_B_ETL_Risk/src/synthetic_generator.generar_observaciones`, correlacionado con embarazo/vacunas/vivienda/mascotas de cada familia).
 
-```python
-# build_corpus_desde_bd.py  (esquema)
-import requests, json
-cedulas = requests.get("https://sums-api.troy.engineer/sums/cedulas").json()
-corpus = [{"id": f"ced{c['id']}", "titulo": c["familia"]["informante_nombre"],
-           "texto": c.get("observaciones", "")} for c in cedulas if c.get("observaciones")]
-json.dump(corpus, open("subcomponente_C_busqueda/data/corpus_crudo_sums.json","w"),
-          ensure_ascii=False, indent=2)
-# luego: python subcomponente_C_busqueda/src/preprocess.py  (re-indexa)
-```
-Cuanto más ricas sean las notas, mejor busca el motor. (El índice se puede reconstruir periódicamente, p.ej. tras cada sync de cédulas.)
+- **Builder real:** `subcomponente_C_busqueda/src/corpus_familias.py` → `construir_corpus_desde_familias(familias)`. Itera `families_full.json`, omite las familias sin `observaciones` (vacío/None/solo-espacios) y devuelve `{id, titulo, texto}` con el mismo esquema que ya consumen `preprocess.preprocesar` (BM25/TF-IDF) y `embeddings_engine.MotorSemantico` — no hubo que tocar ninguno de los dos motores.
+- **Endpoint real:** `GET /buscar/familias?q=...&motor=bm25|tfidf|semantico&k=10` (en `integracion/api_mineria.py`), que además enriquece cada resultado con `nombre_informante`, `domicilio`, `colonia`, `localidad` y `texto_observacion` de la familia encontrada.
+- **El día que la BD tenga observaciones reales de captura** (no sintéticas), este mismo builder funciona **sin ningún cambio**: solo lee el campo `observaciones` que ya existe en cada cédula, igual que hoy lee el placeholder-ya-enriquecido de `families_full.json`. No hace falta un script `build_corpus_desde_bd.py` aparte: basta con que `families_full.json` (o la fuente que lo reemplace) traiga `observaciones` reales.
+
+Cuanto más ricas sean las notas, mejor busca el motor. (El índice se reconstruye en cada arranque de la API; ver `lifespan()` en `api_mineria.py`.)
 
 ### 4.4 La lista de riesgo en el Dashboard (Subcomp. B)
 
@@ -199,7 +193,8 @@ sums-data-mining/
 │   ├── data/ (synthetic_data.csv, families_full.json, processed/…)
 │   └── notebooks/B_ETL_Risk_Model.ipynb
 └── subcomponente_C_busqueda/
-    ├── src/  (corpus_builder, preprocess, tfidf_engine, bm25_engine, ir_metrics, qrels_builder, run_all)
+    ├── src/  (corpus_builder, corpus_familias ← corpus REAL de families_full.json,
+    │         preprocess, tfidf_engine, bm25_engine, ir_metrics, qrels_builder, run_all)
     ├── data/ (corpus_crudo_sums.json, corpus_procesado_sums.json, qrels_sums.json)
     └── notebooks/C_Motor_Busqueda.ipynb
 ```

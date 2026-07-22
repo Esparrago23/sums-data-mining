@@ -102,6 +102,17 @@ COLUMNAS_IDENTIFICACION = [
     "localidad",
 ]
 
+# Banderas de grupos vulnerables (grupos_vulnerables.py): igual que las de
+# identificación, NO son features del modelo -- describen la COMPOSICIÓN de la
+# familia (¿hay embarazada? ¿bebé? ¿adulto mayor solo? ¿mascota sin vacunar?),
+# información que se pierde al agregar a conteos/promedios para el modelo,
+# pero que SÍ se usa en risk_report.py para decidir prioridad de visita
+# independientemente del nivel de riesgo ML.
+# Importado (no duplicado) de grupos_vulnerables.py -- una sola fuente de
+# verdad para no repetir el M2 del proyecto (lista duplicada que se
+# desincroniza si alguien agrega una bandera y olvida actualizar la otra).
+from grupos_vulnerables import BANDERAS_COLUMNAS as COLUMNAS_BANDERAS  # noqa: E402
+
 # Mapa robusto de strings → bool por si el CSV trae 'True'/'False' como texto.
 _BOOL_MAP = {
     "True": True, "False": False,

@@ -8,7 +8,16 @@ Envuelve los dos componentes en endpoints HTTP que la Web (React) o la app
   GET  /salud                  -> healthcheck (qué cargó, cuántos documentos)
   GET  /buscar?q=...&motor=bm25|tfidf|semantico&k=5
                                -> Subcomponente C: motor de búsqueda sobre notas
-                                  (semantico = embeddings Sentence-BERT, opcional)
+                                  BENCHMARK sintéticas (150, con qrels/métricas;
+                                  semantico = embeddings Sentence-BERT, opcional)
+  GET  /buscar/estructurado?q=...
+                               -> Subcomponente C: filtro sobre datos ESTRUCTURADOS
+                                  de la cédula (vacunas, embarazo, mascotas, etc.)
+  GET  /buscar/familias?q=...&motor=bm25|tfidf|semantico&k=10
+                               -> Subcomponente C: motor de búsqueda sobre el
+                                  campo `observaciones` REAL de cada familia
+                                  (families_full.json) -- regresa las cédulas
+                                  que aplican, sin qrels/métricas (uso práctico)
   POST /riesgo/predecir        -> Subcomponente B: clasifica UNA familia (ALTO/MEDIO/BAJO)
   GET  /riesgo/lista?top=20    -> Subcomponente B: lista priorizada de visitas
 
@@ -29,8 +38,10 @@ Seguridad:
 
 NOTA de arquitectura: esto corre como un MICROSERVICIO Python al lado de la
 sums-API (Node/TS). No reemplaza nada; el front llama a este servicio para las
-funciones de minería. En producción el corpus del buscador se construye con el
-campo `observaciones` real de las cédulas (ver build_corpus_desde_bd en el README).
+funciones de minería. El corpus de `/buscar/familias` YA se construye con el
+campo `observaciones` real de cada familia (subcomponente_C_busqueda/src/corpus_familias.py,
+ver README sección 4.3): el día que la BD tenga observaciones reales de
+captura (no sintéticas), este mismo builder funciona sin cambios.
 """
 from __future__ import annotations
 
@@ -68,9 +79,15 @@ for p in (A_DIR / "src", B_DIR / "src", C_DIR / "src"):
 from tfidf_engine import MotorTFIDF        # noqa: E402
 from bm25_engine import MotorBM25          # noqa: E402
 from embeddings_engine import MotorSemantico  # noqa: E402
+from buscador_estructurado import buscar_estructurado  # noqa: E402
+from corpus_familias import construir_corpus_desde_familias  # noqa: E402
+from preprocess import preprocesar as _preprocesar_texto  # noqa: E402
 from etl_pipeline import load_dataset, FEATURES   # noqa: E402
+from grupos_vulnerables import motivo_prioridad  # noqa: E402
 from model_trainer import train_and_evaluate, resolver_label_encoder  # noqa: E402
-from risk_report import generar_lista_visitas, _predecir  # noqa: E402
+from risk_report import (  # noqa: E402
+    generar_lista_visitas, evaluar_riesgo_poblacional, resumen_por_zona, _predecir,
+)
 
 # ── Imports del Subcomponente A (OCR) ────────────────────────────────────────
 from pdf_renderer import render_pdf          # noqa: E402
@@ -218,6 +235,51 @@ async def lifespan(app: FastAPI):
         )
         ESTADO["semantico"] = None
 
+    # Buscador ESTRUCTURADO (complementario al de notas): opera sobre los
+    # payloads completos de families_full.json (integrantes, vacunas,
+    # vivienda) -- no sobre el corpus de notas de arriba. Ver docstring de
+    # buscador_estructurado.py para por qué esto es un capability distinto,
+    # no una variante del motor de texto.
+    familias_full_path = B_DIR / "data" / "families_full.json"
+    if familias_full_path.exists():
+        ESTADO["familias_full"] = json.loads(familias_full_path.read_text(encoding="utf-8"))
+    else:
+        ESTADO["familias_full"] = []
+
+    # Motores de búsqueda sobre observaciones REALES de familia (Parte 2/3 de
+    # la tarea de cierre del corpus-benchmark): a diferencia de bm25/tfidf/
+    # semantico de arriba (que indexan el corpus SINTÉTICO de 150 notas,
+    # desconectado de families_full.json), estos motores indexan el campo
+    # `observaciones` real de cada familia -- así una consulta en /buscar/familias
+    # SÍ regresa las cédulas que aplican, cerrando el ciclo que /buscar no puede
+    # cerrar (ver docstring de corpus_familias.py). Degrada con gracia a None
+    # si no hay familias cargadas (JSON ausente o vacío).
+    if ESTADO["familias_full"]:
+        corpus_familias_crudo = construir_corpus_desde_familias(ESTADO["familias_full"])
+        corpus_familias_procesado = [
+            {"id": d["id"], "titulo": d["titulo"], "tokens": _preprocesar_texto(d["texto"])}
+            for d in corpus_familias_crudo
+        ]
+        try:
+            motor_semantico_familias = MotorSemantico(corpus_familias_crudo)
+        except Exception:
+            logger.warning(
+                "Motor semántico de familias no disponible (dependencias/modelo "
+                "no instalados); se omite motor=semantico en /buscar/familias.",
+                exc_info=True,
+            )
+            motor_semantico_familias = None
+
+        ESTADO["motores_familias"] = {
+            "bm25": MotorBM25(corpus_familias_procesado),
+            "tfidf": MotorTFIDF(corpus_familias_procesado),
+            "semantico": motor_semantico_familias,
+        }
+        ESTADO["corpus_familias_crudo"] = corpus_familias_crudo
+    else:
+        ESTADO["motores_familias"] = None
+        ESTADO["corpus_familias_crudo"] = []
+
     # --- Subcomponente B: modelo de riesgo (M1: cache en disco, no reentrena
     # en cada arranque salvo que cambie el CSV fuente) ---
     csv_path = B_DIR / "data" / "synthetic_data.csv"
@@ -230,6 +292,16 @@ async def lifespan(app: FastAPI):
     ESTADO["lista"] = generar_lista_visitas(
         cache["df"], ESTADO["pipe"], ESTADO["le"], processed_dir=str(processed_dir)
     )
+    # Riesgo de cúmulo geográfico (mejora: proxy honesto de "contagio" dado
+    # que no existe un campo estructurado de enfermedad transmisible activa
+    # -- ver docstring de risk_report.resumen_por_zona).
+    poblacion_completa = evaluar_riesgo_poblacional(cache["df"], ESTADO["pipe"], ESTADO["le"])
+    if "colonia" in poblacion_completa.columns:
+        ESTADO["resumen_zonas"] = resumen_por_zona(
+            poblacion_completa, columna_zona="colonia", processed_dir=str(processed_dir)
+        )
+    else:
+        ESTADO["resumen_zonas"] = None
 
     # --- Subcomponente A: OCR (precargar field map) ---
     field_map_path = A_DIR / "config" / "field_map_sums.json"
@@ -278,6 +350,18 @@ def salud():
                 "motores": _motores_disponibles(),
                 "n_documentos": len(ESTADO.get("textos", {})),
             },
+            "buscador_estructurado": {
+                "disponible": bool(ESTADO.get("familias_full")),
+                "n_familias": len(ESTADO.get("familias_full", [])),
+            },
+            "buscador_familias": {
+                "disponible": ESTADO.get("motores_familias") is not None,
+                "n_familias_indexadas": len(ESTADO.get("corpus_familias_crudo", [])),
+                "motores": (
+                    ["bm25", "tfidf"] + (["semantico"] if (ESTADO.get("motores_familias") or {}).get("semantico") else [])
+                    if ESTADO.get("motores_familias") else []
+                ),
+            },
             "modelo_riesgo": {
                 "disponible": "pipe" in ESTADO,
                 "modelo_ganador": ESTADO.get("winner"),
@@ -288,9 +372,9 @@ def salud():
             "/salud", "/catalogos", "/datos/estadisticas",
             "/ocr/procesar", "/ocr/resultados", "/ocr/resultados/{doc_id}",
             "/ocr/roi/{doc_id}/{field_id}", "/ocr/campos-template",
-            "/buscar", "/buscar/metricas", "/corpus/estadisticas",
+            "/buscar", "/buscar/estructurado", "/buscar/familias", "/buscar/metricas", "/corpus/estadisticas",
             "/corpus/documento/{doc_id}", "/corpus/reindexar",
-            "/riesgo/predecir", "/riesgo/predecir-lote", "/riesgo/lista",
+            "/riesgo/predecir", "/riesgo/predecir-lote", "/riesgo/lista", "/riesgo/zonas",
             "/riesgo/metricas", "/riesgo/modelo-info", "/riesgo/graficas/{tipo}",
         ],
     }
@@ -340,6 +424,107 @@ def buscar(q: str, motor: Literal["bm25", "tfidf", "semantico"] = "bm25", k: int
     }
 
 
+@app.get("/buscar/estructurado", dependencies=REQUIERE_API_KEY)
+def buscar_estructurado_endpoint(q: str, k: int = 20):
+    """Busca CÉDULAS (no notas) por datos estructurados: vacunas (con/sin),
+    enfermedades crónicas, embarazo, menores de 1 año, adultos mayores solos,
+    nutrición, mascotas/animales, o colonia/calle.
+
+    Complementa a `/buscar` (que indexa texto libre de notas): en la práctica
+    el campo `observaciones` de una cédula no siempre tiene una nota rica
+    -- este endpoint responde consultas como "sarampión sin vacunar" o
+    "familias con mascotas" con un FILTRO real sobre los datos de la cédula,
+    no con similitud de texto. Ver docstring de buscador_estructurado.py.
+
+    "Cerca de <colonia/calle>" es una aproximación por MISMA colonia/calle,
+    no distancia geográfica real (no hay coordenadas en los datos).
+
+    Si la consulta no coincide con ninguna categoría soportada, responde
+    `disponible: false` con un mensaje indicando qué sí se puede buscar (en
+    vez de forzar un resultado vacío sin explicación)."""
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="La consulta 'q' no puede estar vacía.")
+    if len(q) > MAX_LONGITUD_CONSULTA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La consulta excede la longitud máxima permitida ({MAX_LONGITUD_CONSULTA} caracteres).",
+        )
+    k = max(1, min(k, 100))
+    return buscar_estructurado(q, ESTADO.get("familias_full", []), k=k)
+
+
+@app.get("/buscar/familias", dependencies=REQUIERE_API_KEY)
+def buscar_familias(q: str, motor: Literal["bm25", "tfidf", "semantico"] = "bm25", k: int = 10):
+    """Busca FAMILIAS reales (no notas benchmark) por similitud de texto sobre
+    su campo `observaciones` real (enriquecido por
+    `synthetic_generator.generar_observaciones`; ver corpus_familias.py).
+
+    Complementa a `/buscar` (150 notas sintéticas inventadas por plantillas,
+    desconectadas de cualquier familia) y a `/buscar/estructurado` (filtros
+    sobre datos estructurados, no texto libre): este endpoint SÍ cierra el
+    ciclo "busco 'enfermedad rara' y me regresan las cédulas que aplican",
+    porque el texto que indexa es el de una familia real identificable.
+
+    motor=bm25 (recomendado) | tfidf | semantico (503 si no disponible).
+    k = nº de resultados.
+
+    NOTA METODOLÓGICA: este endpoint NO reporta métricas P@k/MRR/nDCG como
+    `/buscar/metricas` -- no existe un ground truth (qrels) independiente
+    para observaciones reales de familia (a diferencia del corpus de 150
+    notas benchmark, que sí tiene qrels derivados de corpus_themes.json).
+    `/buscar` sigue siendo el que demuestra la técnica con métricas para la
+    materia; `/buscar/familias` es el de uso práctico / valor de negocio."""
+    motores = ESTADO.get("motores_familias")
+    if not motores:
+        raise HTTPException(
+            status_code=404,
+            detail="No hay familias cargadas para buscar (families_full.json ausente o vacío).",
+        )
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="La consulta 'q' no puede estar vacía.")
+    if len(q) > MAX_LONGITUD_CONSULTA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La consulta excede la longitud máxima permitida ({MAX_LONGITUD_CONSULTA} caracteres).",
+        )
+    k = max(1, min(k, 50))
+
+    if motor == "tfidf":
+        ranking = motores["tfidf"].buscar_tfidf(q, k=k)
+    elif motor == "semantico":
+        if not motores.get("semantico"):
+            raise HTTPException(status_code=503, detail="Motor semántico no disponible en este servidor.")
+        ranking = motores["semantico"].buscar_semantico(q, k=k)
+    else:
+        ranking = motores["bm25"].buscar_bm25(q, k=k, k1=2.0, b=0.75)
+
+    familias_full = ESTADO.get("familias_full", [])
+    resultados = []
+    for score, doc_id, _titulo in ranking:
+        fam = familias_full[int(doc_id)]
+        datos_familia = fam.get("familia", {})
+        resultados.append({
+            "familia_id": int(doc_id),
+            "nombre_informante": datos_familia.get("informante_nombre"),
+            "domicilio": (
+                f"{datos_familia.get('calle', '')} #{datos_familia.get('numero_exterior', '')}, "
+                f"Col. {datos_familia.get('colonia', '')}"
+            ),
+            "colonia": datos_familia.get("colonia"),
+            "localidad": datos_familia.get("localidad"),
+            "texto_observacion": fam.get("observaciones", ""),
+            "score": round(float(score), 4),
+        })
+
+    return {
+        "consulta": q,
+        "motor": motor,
+        "k": k,
+        "familias_indexadas": len(ESTADO.get("corpus_familias_crudo", [])),
+        "resultados": resultados,
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Subcomponente B — Riesgo
 # ─────────────────────────────────────────────────────────────────────────────
@@ -376,6 +561,23 @@ class FamiliaFeatures(BaseModel):
     vacunacion_completa: bool = True
     seguridad_social_jefe: bool = False
 
+    # ── Banderas de grupos vulnerables (grupos_vulnerables.py) ──────────────
+    # NO son features del modelo ML (no van en etl_pipeline.FEATURES, así que
+    # nunca llegan al pipeline entrenado) -- describen la COMPOSICIÓN de la
+    # familia, información que el modelo (entrenado sobre conteos/promedios
+    # agregados) no puede ver por diseño. El caller (app/web, que ya capturó
+    # los integrantes de la cédula) las provee directo; el endpoint las
+    # combina con el nivel de riesgo ML para decidir prioridad de visita.
+    tiene_embarazada: bool = False
+    tiene_menor_1_anio: bool = False
+    tiene_menor_5_sin_vacunas: bool = False
+    tiene_adulto_mayor_solo: bool = False
+    # Riesgo zoonótico: mascota en la vivienda sin vacunación al corriente
+    # (rabia, parásitos) -- dato ya capturado en vivienda.perros_gatos_dentro
+    # / mascotas_vacunas_corrientes, antes no usado por el modelo ni por
+    # ninguna bandera.
+    tiene_mascota_sin_vacunar: bool = False
+
     @field_validator("*", mode="before")
     @classmethod
     def _strip_str_fields(cls, v):
@@ -388,14 +590,33 @@ class FamiliaFeatures(BaseModel):
 
 @app.post("/riesgo/predecir", dependencies=REQUIERE_API_KEY)
 def predecir(fam: FamiliaFeatures):
-    """Clasifica el nivel de riesgo (ALTO/MEDIO/BAJO) de UNA familia + prob. de ALTO."""
+    """Clasifica el nivel de riesgo (ALTO/MEDIO/BAJO) de UNA familia + prob. de ALTO,
+    y la combina con banderas de grupos vulnerables (embarazada/menor de 1 año/
+    menor de 5 sin vacunas/adulto mayor solo) en `prioridad_visita`: puede ser
+    "URGENTE" aunque el modelo prediga BAJO/MEDIO -- una familia con buena
+    vivienda pero con una embarazada sin control prenatal SÍ necesita visita
+    pronto, y el modelo (entrenado sobre agregados) no puede verlo por sí solo."""
     try:
-        fila = pd.DataFrame([fam.model_dump()])[FEATURES]
+        datos = fam.model_dump()
+        fila = pd.DataFrame([datos])[FEATURES]
         pred, prob_alto = _predecir(ESTADO["pipe"], fila, ESTADO["le"])
+        nivel_riesgo = str(pred[0])
+
+        banderas = {
+            "tiene_embarazada": datos["tiene_embarazada"],
+            "tiene_menor_1_anio": datos["tiene_menor_1_anio"],
+            "tiene_menor_5_sin_vacunas": datos["tiene_menor_5_sin_vacunas"],
+            "tiene_adulto_mayor_solo": datos["tiene_adulto_mayor_solo"],
+            "tiene_mascota_sin_vacunar": datos["tiene_mascota_sin_vacunar"],
+        }
+        tiene_bandera = any(banderas.values())
+
         return {
             "modelo": ESTADO["winner"],
-            "nivel_riesgo": str(pred[0]),
+            "nivel_riesgo": nivel_riesgo,
             "probabilidad_alto": round(float(prob_alto[0]), 4),
+            "prioridad_visita": "URGENTE" if (nivel_riesgo == "ALTO" or tiene_bandera) else "REGULAR",
+            "motivo_prioridad": motivo_prioridad(banderas, nivel_riesgo_ml=nivel_riesgo),
         }
     except HTTPException:
         raise
@@ -416,6 +637,34 @@ def lista_visitas(top: int = 20):
     top = max(1, min(top, len(lista)))
     out = lista.head(top).reset_index()  # 'prioridad' pasa a columna
     return json.loads(out.to_json(orient="records", force_ascii=False))
+
+
+@app.get("/riesgo/zonas", dependencies=REQUIERE_API_KEY)
+def riesgo_por_zona():
+    """Riesgo de CÚMULO GEOGRÁFICO: agrupa toda la población por colonia y mide
+    qué tan concentrado está el riesgo ahí (% de familias ALTO o con alguna
+    bandera de grupo vulnerable/zoonótico), ordenado de mayor a menor.
+
+    MOTIVACIÓN: si una familia tiene un padecimiento transmisible, sus vecinos
+    podrían estar en riesgo -- pero hoy no existe en el modelo de datos un
+    campo estructurado de "enfermedad transmisible activa" (ver docstring de
+    risk_report.resumen_por_zona para el detalle). Este endpoint es un PROXY
+    honesto con los datos que sí existen: zonas con concentración anormal de
+    riesgo son candidatas a visitarse como zona, no familia por familia.
+
+    `nivel_alerta_zona` es RELATIVO (percentil dentro de este dataset: top 20%
+    = ALTO, siguiente 30% = MEDIO, resto = BAJO), no un umbral fijo -- por eso
+    siempre hay zonas en las 3 categorías, incluso si el riesgo está repartido
+    parejo entre colonias.
+
+    Output: [{"zona": "Centro", "total_familias": 369, "n_alto": 129,
+      "pct_alto": 0.35, "n_con_bandera": 150, "pct_con_bandera": 0.41,
+      "pct_alto_o_bandera": 0.62, "nivel_alerta_zona": "MEDIO"}, ...]
+    """
+    resumen = ESTADO.get("resumen_zonas")
+    if resumen is None or len(resumen) == 0:
+        raise HTTPException(status_code=404, detail="Resumen por zona no disponible.")
+    return json.loads(resumen.to_json(orient="records", force_ascii=False))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -714,17 +963,29 @@ def predecir_lote(lote: LoteFamilias):
         raise HTTPException(400, "La lista de familias no puede estar vacía.")
 
     try:
-        filas = pd.DataFrame([f.model_dump() for f in lote.familias])[FEATURES]
+        datos_lote = [f.model_dump() for f in lote.familias]
+        filas = pd.DataFrame(datos_lote)[FEATURES]
         preds, probs = _predecir(ESTADO["pipe"], filas, ESTADO["le"])
 
-        return {
-            "modelo": ESTADO["winner"],
-            "total": len(preds),
-            "resultados": [
-                {"indice": i, "nivel_riesgo": str(preds[i]), "probabilidad_alto": round(float(probs[i]), 4)}
-                for i in range(len(preds))
-            ],
-        }
+        resultados = []
+        for i in range(len(preds)):
+            nivel_riesgo = str(preds[i])
+            banderas = {
+                "tiene_embarazada": datos_lote[i]["tiene_embarazada"],
+                "tiene_menor_1_anio": datos_lote[i]["tiene_menor_1_anio"],
+                "tiene_menor_5_sin_vacunas": datos_lote[i]["tiene_menor_5_sin_vacunas"],
+                "tiene_adulto_mayor_solo": datos_lote[i]["tiene_adulto_mayor_solo"],
+                "tiene_mascota_sin_vacunar": datos_lote[i]["tiene_mascota_sin_vacunar"],
+            }
+            resultados.append({
+                "indice": i,
+                "nivel_riesgo": nivel_riesgo,
+                "probabilidad_alto": round(float(probs[i]), 4),
+                "prioridad_visita": "URGENTE" if (nivel_riesgo == "ALTO" or any(banderas.values())) else "REGULAR",
+                "motivo_prioridad": motivo_prioridad(banderas, nivel_riesgo_ml=nivel_riesgo),
+            })
+
+        return {"modelo": ESTADO["winner"], "total": len(preds), "resultados": resultados}
     except HTTPException:
         raise
     except Exception:
