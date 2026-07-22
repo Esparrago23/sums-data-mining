@@ -66,6 +66,14 @@ from text_trainer import (  # noqa: E402
     train_text_models,
 )
 
+# Importación condicional del nuevo motor PaddleOCR.
+try:
+    from text_trainer import apply_paddle_text  # noqa: E402
+    from paddle_extractor import get_ocr_engine  # noqa: E402
+    _PADDLE_AVAILABLE = True
+except ImportError:
+    _PADDLE_AVAILABLE = False
+
 
 def _page_num(path: Path) -> int:
     match = re.search(r"-(\d+)\.png$", path.name)
@@ -165,17 +173,50 @@ def main() -> int:
             predictions, truth, rol_model.train_docs, rol_model.test_docs
         )
 
+    import logging as _logging_run
+    _log_run = _logging_run.getLogger("sums.ocr.run_all")
+
     from text_trainer import apply_ocr_text, train_text_models  # noqa: E402
 
-    apply_ocr_text(predictions)
+    # -----------------------------------------------------------------------
+    # Selección dinámica del motor de texto:
+    # 1º PaddleOCR + fuzzy mapping (si está instalado y operativo)
+    # 2º Tesseract OCR (fallback existente, siempre disponible)
+    # Los checkboxes y números NO se ven afectados por este bloque.
+    # -----------------------------------------------------------------------
+    active_text_engine = "Tesseract OCR"
+    paddle_engine = None
+
+    if _PADDLE_AVAILABLE:
+        try:
+            paddle_engine = get_ocr_engine()
+            if paddle_engine.is_available:
+                _log_run.info("[A] Motor de texto: PaddleOCR + fuzzy mapping")
+                apply_paddle_text(
+                    predictions,
+                    engine=paddle_engine,
+                    field_map=field_map,
+                    page_key="1",
+                )
+                active_text_engine = "PaddleOCR+fuzzy"
+            else:
+                _log_run.warning("[A] PaddleOCR no disponible, usando Tesseract OCR.")
+                apply_ocr_text(predictions, field_map=field_map, page_key="1")
+        except Exception as _paddle_err:  # noqa: BLE001
+            _log_run.error("[A] Error en PaddleOCR: %s, usando Tesseract OCR.", _paddle_err)
+            apply_ocr_text(predictions, field_map=field_map, page_key="1")
+    else:
+        _log_run.info("[A] Motor de texto: Tesseract OCR (PaddlePaddle no instalado)")
+        apply_ocr_text(predictions, field_map=field_map, page_key="1")
     text_models = train_text_models(predictions, truth, TEXT_TRAIN_DOCS, TEXT_TEST_DOCS)
     text_info = {
-        "type": "Tesseract OCR text field",
+        "type": active_text_engine,
         "fields": sorted(TEXT_FIELDS),
         "predicted_fields": sum(
             1 for doc in predictions.values() for f in doc.get("fields", {}).values()
             if f.get("type") == "text" and f.get("value") is not None
         ),
+        "paddle_available": _PADDLE_AVAILABLE and (paddle_engine.is_available if paddle_engine else False),
     }
     text_split_metrics = None
     if text_models:

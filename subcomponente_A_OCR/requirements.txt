@@ -1,18 +1,40 @@
-# Subcomponente A - OCR estructurado de cedulas PDF
+# Subcomponente A — OCR estructurado de cédulas PDF
 #
-# Dependencias Python del pipeline propio:
-#   - numpy: matrices y calculo de features visuales
-#   - opencv-python: preprocesamiento, binarizacion, contornos y lineas
-#   - pymupdf: fallback puro Python para renderizar PDFs si Poppler no esta disponible
-#   - scikit-learn: modelos locales entrenados con ground truth manual
+# Entorno objetivo: Linux ARM64 / x86_64 dentro de Docker (Raspberry Pi 4 / Ubuntu Server).
 #
-# Dependencia del sistema requerida para renderizar PDFs:
-#   - pdftoppm (Poppler)
-#     Ubuntu/Debian: sudo apt install poppler-utils
-#     Windows: instalar Poppler y agregar bin/ al PATH
+# ─── Dependencias originales (pipeline de checkboxes, números y preprocesamiento) ───
+#   numpy          : matrices y cálculo de features visuales
+#   opencv-python-headless : binarización, contornos, HoughLines (sin GUI, apto servidor)
+#   pymupdf        : renderizado de PDFs a PNG (fallback sin Poppler)
+#   pytesseract    : OCR de texto manuscrito — FALLBACK si PaddleOCR no está disponible
+#   scikit-learn   : modelos KNN / LogisticRegression locales
+#
+# ─── Motor principal de texto: PaddleOCR ─────────────────────────────────────────────
+#   paddlepaddle   : framework DL backend de PaddleOCR (CPU-only en ARM64)
+#                    ARM64 wheel: ver instrucciones en docker/Dockerfile.ocr
+#   paddleocr      : API de alto nivel para detección + reconocimiento (PP-OCRv4)
+#
+# ─── Fuzzy matching ──────────────────────────────────────────────────────────────────
+#   rapidfuzz      : similitud de cadenas (WRatio/partial_ratio) para corrección OCR
+#
+# ─── Dependencia del sistema (para pytesseract y renderizado PDF) ─────────────────────
+#   Ubuntu/Debian: sudo apt install poppler-utils tesseract-ocr tesseract-ocr-spa
+#   (en Docker: ver docker/Dockerfile.ocr para la imagen ARM64 completa)
 
+# --- Originales (no modificar — usados por checkbox, número y preprocessing) ---
 numpy
-opencv-python
-pymupdf
-pytesseract
-scikit-learn
+opencv-python-headless>=4.9.0   # headless: sin libGL de display, apto para servidor
+pymupdf>=1.24.0
+pytesseract>=0.3.10             # fallback Tesseract (requiere binario del sistema)
+scikit-learn>=1.5
+
+# --- Motor principal: PaddleOCR ---
+# NOTA ARM64 (Raspberry Pi 4): instalar con el índice de wheels CPU:
+#   pip install paddlepaddle==2.6.2 -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html
+# En x86_64 Linux el wheel está en PyPI directamente.
+paddlepaddle>=2.6.2
+paddleocr>=2.7.3
+
+# --- Fuzzy matching para el mapper de coordenadas ---
+rapidfuzz>=3.6.1
+

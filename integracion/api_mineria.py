@@ -77,6 +77,21 @@ from catalogos_sums import (  # noqa: E402
     CAT_MATERIAL_TECHO_PAREDES, CAT_MATERIAL_PISO, CAT_MANEJO_EXCRETAS,
 )
 
+# ── Motor de texto OCR (PaddleOCR si disponible, Tesseract como fallback) ────
+# Importación condicional: la API arranca normalmente aunque PaddlePaddle
+# no esté instalado; en ese caso el motor de texto cae automáticamente
+# a Tesseract con recorte individual por bbox_rel.
+try:
+    from text_trainer import apply_paddle_text, apply_ocr_text  # noqa: E402
+    from paddle_extractor import get_ocr_engine                  # noqa: E402
+    _TEXT_ENGINE_AVAILABLE = True
+except ImportError:
+    _TEXT_ENGINE_AVAILABLE = False
+    logger.warning(
+        "[OCR] text_trainer / paddle_extractor no disponibles. "
+        "Los campos de texto quedarán con value=null hasta que se instalen."
+    )
+
 ESTADO: dict = {}
 
 # ── Seguridad: API key compartida (item 1 de la auditoría) ──────────────────
@@ -370,6 +385,22 @@ async def ocr_procesar(archivo: UploadFile = File(...)):
 
         resultado = extract_document(doc_id, pages_norm, field_map, str(processed_dir))
 
+        # ── Motor de texto: PaddleOCR o Tesseract (sólo campos type='text') ──
+        if _TEXT_ENGINE_AVAILABLE:
+            _preds = {doc_id: resultado}
+            try:
+                _engine = get_ocr_engine()
+                if _engine.is_available:
+                    logger.info("[OCR] Motor de texto: PaddleOCR + fuzzy mapping")
+                    apply_paddle_text(_preds, engine=_engine, field_map=field_map, page_key="1")
+                else:
+                    logger.warning("[OCR] PaddleOCR no disponible, usando Tesseract OCR.")
+                    apply_ocr_text(_preds, field_map=field_map, page_key="1")
+            except Exception as _ocr_err:  # noqa: BLE001
+                logger.error("[OCR] Error en motor de texto (%s), usando Tesseract OCR.", _ocr_err)
+                apply_ocr_text(_preds, field_map=field_map, page_key="1")
+        # ────────────────────────────────────────────────────────────────────
+
         return {
             "doc_id": doc_id,
             "archivo_original": archivo.filename,
@@ -464,6 +495,23 @@ async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
         # 3. Extraer campos usando field_extractor.extract_document
         resultado = extract_document(doc_id, pages_norm, field_map, str(processed_dir))
 
+        # ── Motor de texto: PaddleOCR o Tesseract (sólo campos type='text') ──
+        if _TEXT_ENGINE_AVAILABLE:
+            _preds = {doc_id: resultado}
+            try:
+                _engine = get_ocr_engine()
+                if _engine.is_available:
+                    logger.info("[OCR] Motor de texto: PaddleOCR + fuzzy mapping")
+                    apply_paddle_text(_preds, engine=_engine, field_map=field_map, page_key="1")
+                else:
+                    logger.warning("[OCR] PaddleOCR no disponible, usando Tesseract OCR.")
+                    apply_ocr_text(_preds, field_map=field_map, page_key="1")
+            except Exception as _ocr_err:  # noqa: BLE001
+                logger.error("[OCR] Error en motor de texto (%s), usando Tesseract OCR.", _ocr_err)
+                apply_ocr_text(_preds, field_map=field_map, page_key="1")
+        # ────────────────────────────────────────────────────────────────────
+
+        # Re-leer campos desde resultado (puede haber sido enriquecido por el motor de texto).
         campos = resultado.get("fields", {})
         return {
             "doc_id": doc_id,
