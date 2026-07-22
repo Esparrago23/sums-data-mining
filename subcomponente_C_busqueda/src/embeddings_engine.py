@@ -74,8 +74,14 @@ MODELO = 'hiiamsid/sentence_similarity_spanish_es'
 MIN_LIBRE_GB = 1.5
 
 
-def _gb_libres(ruta='C:/'):
-    """GB libres en la unidad de `ruta` (redondeado)."""
+def _gb_libres(ruta='.'):
+    """GB libres en el filesystem que contiene `ruta` (redondeado).
+
+    Por defecto usa '.' (directorio de trabajo actual) en vez de una unidad
+    fija: 'C:/' solo existe en Windows y truena con FileNotFoundError dentro
+    del contenedor Linux (sin unidad C:). shutil.disk_usage('.') funciona
+    igual en ambos sistemas operativos.
+    """
     return shutil.disk_usage(ruta).free / (1024 ** 3)
 
 
