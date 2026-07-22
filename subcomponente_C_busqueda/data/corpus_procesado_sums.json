@@ -249,7 +249,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "menor",
       "ano",
@@ -297,7 +297,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "vivienda",
       "piso",
@@ -326,7 +326,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el",
+      "beber",
       "tabaquismo",
       "activo",
       "integrante",
@@ -460,7 +460,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico"
     ]
   },
@@ -634,7 +634,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico"
     ]
   },
@@ -796,7 +796,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "servicio",
       "agua",
@@ -894,7 +894,7 @@
       "menor",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero"
     ]
@@ -1032,7 +1032,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar"
     ]
   },
@@ -1123,7 +1123,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "menor",
       "vacuna",
@@ -1184,7 +1184,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico"
     ]
   },
@@ -1201,7 +1201,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "familia",
       "inseguridad",
@@ -1221,7 +1221,7 @@
       "suchiapa",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "contar",
@@ -1229,7 +1229,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el",
+      "beber",
       "embarazado",
       "control",
       "prenatal",
@@ -1327,7 +1327,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "menor",
       "ano",
@@ -1377,7 +1377,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "abundancia",
       "larva",
@@ -1423,7 +1423,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "faltar",
       "refuerzo",
@@ -1482,7 +1482,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "casa",
       "adobe",
@@ -1505,7 +1505,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el",
+      "beber",
       "abundancia",
       "larva",
       "mosquito",
@@ -1570,7 +1570,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "almacenamiento",
       "agua",
@@ -1709,7 +1709,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el",
+      "beber",
       "dietar",
       "baja",
       "protein",
@@ -1721,7 +1721,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar"
     ]
   },
@@ -1737,7 +1737,7 @@
       "suchiapa",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "familia",
@@ -1788,7 +1788,7 @@
       "suchiapa",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "servicio",
@@ -1910,7 +1910,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico"
     ]
   },
@@ -1984,7 +1984,7 @@
       "dengue",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "almacenamiento",
@@ -2012,7 +2012,7 @@
       "familiar",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "hipertension",
@@ -2062,7 +2062,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar"
     ]
   },
@@ -2129,14 +2129,14 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "contar",
       "agua",
       "potable",
       "hiervir",
       "agua",
-      "beber el"
+      "beber"
     ]
   },
   {
@@ -2312,7 +2312,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "criadero",
       "mosco",
@@ -2333,7 +2333,7 @@
       "suchiapa",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero",
       "criadero",
@@ -2476,7 +2476,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "paciente",
       "cronico",
@@ -2581,7 +2581,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "nino",
       "desnutricion",
@@ -2616,7 +2616,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el"
+      "beber"
     ]
   },
   {
@@ -2732,7 +2732,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico",
       "vivienda",
       "agua",
@@ -3017,7 +3017,7 @@
       "embarazado",
       "consulta",
       "prenatal",
-      "acir",
+      "acido",
       "folico"
     ]
   },
@@ -3141,7 +3141,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el"
+      "beber"
     ]
   },
   {
@@ -3162,7 +3162,7 @@
       "mosco",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero"
     ]
@@ -3276,7 +3276,7 @@
       "potable",
       "hiervir",
       "agua",
-      "beber el",
+      "beber",
       "paciente",
       "cronico",
       "diabetes",
@@ -3411,7 +3411,7 @@
       "gestante",
       "ano",
       "embarazo",
-      "atencionir",
+      "atencion",
       "hogar",
       "patio",
       "cacharro",
@@ -3439,7 +3439,7 @@
       "dengue",
       "vivienda",
       "drenaje",
-      "letrinar",
+      "letrina",
       "patio",
       "trasero"
     ]

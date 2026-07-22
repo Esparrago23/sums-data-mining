@@ -9,6 +9,17 @@ una lista de las familias clasificadas como ALTO, ordenadas de mayor a menor
 probabilidad (las visitas más urgentes primero).
 
 Salida: `data/processed/lista_visitas_prioritarias.csv`.
+
+NOTA de privacidad (hallazgo de auditoría B-2): esta lista reincorpora
+nombre/domicilio en claro (columnas de COLUMNAS_IDENTIFICACION) que sí se
+excluyen de los FEATURES del modelo (ver etl_pipeline.COLUMNAS_EXCLUIDAS,
+anti-leakage). Es intencional para que quien haga la visita sepa a quién
+buscar. La mitigación exigida es que ningún endpoint que exponga esta lista
+(GET /riesgo/lista en api_mineria.py) esté disponible sin autenticación —
+ya se resolvió en B-3 (X-API-Key obligatoria + CORS restringido). Con datos
+reales de producción, considerar además cifrar en reposo o reemplazar estas
+columnas por un id_familia que solo se resuelva a datos de contacto en un
+endpoint separado y auditado.
 """
 
 from __future__ import annotations
@@ -21,6 +32,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder
 
 from etl_pipeline import COLUMNAS_IDENTIFICACION, FEATURES
+from model_trainer import resolver_label_encoder
 
 PROCESSED_DIR = os.path.join("data", "processed")
 CLASE_ALTO = "ALTO"
@@ -117,7 +129,7 @@ if __name__ == "__main__":
     res = train_and_evaluate(X, y)
     winner = res["winner"]
     pipe = res["fitted"][winner]
-    le = res["label_encoder"] if winner == "XGBoost" else None
+    le = resolver_label_encoder(winner, res["label_encoder"])
 
     lista = generar_lista_visitas(df, pipe, le)
     print(f"Modelo ganador: {winner}")

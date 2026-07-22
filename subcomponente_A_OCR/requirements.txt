@@ -10,9 +10,22 @@
 #   - pdftoppm (Poppler)
 #     Ubuntu/Debian: sudo apt install poppler-utils
 #     Windows: instalar Poppler y agregar bin/ al PATH
+#
+# Dependencia del sistema requerida por pytesseract (motor OCR actual, texto libre):
+#   - binario Tesseract-OCR (NO es un paquete pip, pytesseract solo llama al binario)
+#     Ubuntu/Debian: sudo apt install tesseract-ocr
+#     Windows: winget install --id UB-Mannheim.TesseractOCR -e
+#              (agregar "C:\Program Files\Tesseract-OCR" al PATH)
 
 numpy
 opencv-python
 pymupdf
 pytesseract
 scikit-learn
+
+# --- Motor de texto alternativo (evaluado, ver doctr_engine.py) ---
+# docTR: motor de OCR general (Mindee), evaluado como alternativa a Tesseract
+# para los campos de texto libre. Reutiliza PyTorch (ya instalado por
+# sentence-transformers en subcomponente_C_busqueda). Solo necesita el paquete
+# pip, sin binario de sistema aparte (a diferencia de Tesseract).
+python-doctr[torch]>=0.9.0

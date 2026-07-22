@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 import cv2
+import numpy as np
 
 THIS_DIR = Path(__file__).resolve().parent
 if str(THIS_DIR) not in sys.path:
@@ -26,6 +27,14 @@ from preprocessor import normalize_page  # noqa: E402
 def _page_num(path: Path) -> int:
     match = re.search(r"-(\d+)\.png$", path.name)
     return int(match.group(1)) if match else 1
+
+
+def _imwrite_unicode(path: Path, imagen: np.ndarray) -> None:
+    # cv2.imwrite falla en silencio en Windows para rutas con acentos (ANSI codepage).
+    ok, buffer = cv2.imencode(".png", imagen)
+    if not ok:
+        raise IOError(f"cv2.imencode no pudo codificar la imagen para {path}")
+    path.write_bytes(buffer.tobytes())
 
 
 def draw_overlay(image_path: str | Path, field_map_path: str | Path, out_path: str | Path) -> Path:
@@ -67,7 +76,7 @@ def draw_overlay(image_path: str | Path, field_map_path: str | Path, out_path: s
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(out_path), img)
+    _imwrite_unicode(out_path, img)
     return out_path
 
 

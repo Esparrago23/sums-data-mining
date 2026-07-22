@@ -6,8 +6,9 @@ Envuelve los dos componentes en endpoints HTTP que la Web (React) o la app
 (Flutter) pueden consumir igual que consumen la sums-API de Node:
 
   GET  /salud                  -> healthcheck (qué cargó, cuántos documentos)
-  GET  /buscar?q=...&motor=bm25&k=5
+  GET  /buscar?q=...&motor=bm25|tfidf|semantico&k=5
                                -> Subcomponente C: motor de búsqueda sobre notas
+                                  (semantico = embeddings Sentence-BERT, opcional)
   POST /riesgo/predecir        -> Subcomponente B: clasifica UNA familia (ALTO/MEDIO/BAJO)
   GET  /riesgo/lista?top=20    -> Subcomponente B: lista priorizada de visitas
 
@@ -33,6 +34,7 @@ campo `observaciones` real de las cédulas (ver build_corpus_desde_bd en el READ
 """
 from __future__ import annotations
 
+import asyncio
 import hmac
 import json
 import logging
@@ -44,6 +46,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
+import joblib
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
@@ -64,8 +67,9 @@ for p in (A_DIR / "src", B_DIR / "src", C_DIR / "src"):
 # ── Imports de los componentes (C carga spaCy al importar) ───────────────────
 from tfidf_engine import MotorTFIDF        # noqa: E402
 from bm25_engine import MotorBM25          # noqa: E402
+from embeddings_engine import MotorSemantico  # noqa: E402
 from etl_pipeline import load_dataset, FEATURES   # noqa: E402
-from model_trainer import train_and_evaluate      # noqa: E402
+from model_trainer import train_and_evaluate, resolver_label_encoder  # noqa: E402
 from risk_report import generar_lista_visitas, _predecir  # noqa: E402
 
 # ── Imports del Subcomponente A (OCR) ────────────────────────────────────────
@@ -103,12 +107,52 @@ def verificar_api_key(x_api_key: str | None = Header(default=None, alias="X-API-
 
 REQUIERE_API_KEY = [Depends(verificar_api_key)]
 
+
+def _motores_disponibles() -> list[str]:
+    """bm25/tfidf siempre están disponibles; semantico solo si el modelo cargó."""
+    motores = ["bm25", "tfidf"]
+    if ESTADO.get("semantico"):
+        motores.append("semantico")
+    return motores
+
+
+# Longitud máxima de una consulta de búsqueda (mejora M4): evita que una
+# consulta arbitrariamente larga fuerce procesamiento costoso de spaCy/embeddings.
+MAX_LONGITUD_CONSULTA = 500
+
 # ── Seguridad: validación de subida de PDFs (item 4) ─────────────────────────
 MAX_PDF_BYTES = 20 * 1024 * 1024  # 20 MB
 PDF_MAGIC = b"%PDF-"
 
 # ── Seguridad: whitelist para segmentos de ruta usados en /ocr/roi (item 2) ──
 ID_SEGURO_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+# ── Mejora M1: persistir el modelo ganador en vez de reentrenar en cada
+# arranque (antes SIEMPRE se reentrenaba en lifespan, lo cual funciona porque
+# es determinístico pero no escala y agrega segundos al arranque en cada
+# `--reload`). Se cachea en disco junto al CSV fuente; si el CSV cambia
+# (mtime más reciente que el cache), se reentrena y se regenera el cache.
+MODELO_CACHE_PATH = B_DIR / "data" / "processed" / "modelo_riesgo_cache.joblib"
+
+
+def _cargar_o_entrenar_modelo(csv_path: Path, processed_dir: Path) -> dict:
+    """Carga el modelo ganador desde cache si es más nuevo que el CSV fuente;
+    si no, entrena desde cero (model_trainer.train_and_evaluate) y cachea."""
+    if MODELO_CACHE_PATH.exists() and MODELO_CACHE_PATH.stat().st_mtime >= csv_path.stat().st_mtime:
+        try:
+            cache = joblib.load(MODELO_CACHE_PATH)
+            logger.info("Modelo de riesgo cargado desde cache (%s).", MODELO_CACHE_PATH.name)
+            return cache
+        except Exception:
+            logger.warning("Cache de modelo corrupto o incompatible; se reentrena.", exc_info=True)
+
+    df, X, y = load_dataset(csv_path=str(csv_path))
+    res = train_and_evaluate(X, y, processed_dir=str(processed_dir))
+    cache = {"df": df, "winner": res["winner"], "pipe": res["fitted"][res["winner"]], "label_encoder": res["label_encoder"]}
+    processed_dir.mkdir(parents=True, exist_ok=True)
+    joblib.dump(cache, MODELO_CACHE_PATH)
+    logger.info("Modelo de riesgo entrenado y cacheado en %s.", MODELO_CACHE_PATH.name)
+    return cache
 
 
 async def _leer_y_validar_pdf(archivo: UploadFile) -> bytes:
@@ -125,6 +169,32 @@ async def _leer_y_validar_pdf(archivo: UploadFile) -> bytes:
     return contenido
 
 
+def _pipeline_ocr_sync(
+    doc_id: str, tmp_pdf: Path, rendered_dir: Path, field_map: dict, processed_dir: Path
+) -> dict:
+    """Pipeline OCR completo (renderizar -> normalizar -> extraer), 100% síncrono
+    y con uso intensivo de CPU (subprocess de pdftoppm, OpenCV, checkbox_model).
+
+    Se llama SIEMPRE vía `await asyncio.to_thread(...)` desde los endpoints (nunca
+    directo): estos endpoints son `async def` porque necesitan `await` para leer
+    el UploadFile, pero este pipeline en sí NO es async. Si se llamara directo
+    (sin to_thread) bloquearía el único event loop del proceso durante los
+    ~8-10 segundos que tarda un PDF de 4 páginas -- ninguna OTRA petición
+    concurrente (ni siquiera /salud) se atendería mientras tanto. Medido en vivo:
+    la primera petición /salud durante un OCR en curso tardó 6.9s (vs. ~0.3s en
+    frío) antes de mover esta llamada a un hilo aparte.
+    """
+    page_paths = render_pdf(str(tmp_pdf), str(rendered_dir), dpi=180)
+
+    def _page_num(p) -> int:
+        m = re.search(r"-(\d+)\.png$", str(p))
+        return int(m.group(1)) if m else 0
+
+    pages_sorted = sorted(page_paths, key=_page_num)
+    pages_norm = [normalize_page(str(p), _page_num(p)) for p in pages_sorted]
+    return extract_document(doc_id, pages_norm, field_map, str(processed_dir))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Carga el motor de búsqueda y entrena el modelo de riesgo UNA vez al arrancar."""
@@ -136,15 +206,29 @@ async def lifespan(app: FastAPI):
     ESTADO["tfidf"] = MotorTFIDF(proc)
     ESTADO["bm25"] = MotorBM25(proc)
 
-    # --- Subcomponente B: modelo de riesgo (entrena al arrancar) ---
-    df, X, y = load_dataset(csv_path=str(B_DIR / "data" / "synthetic_data.csv"))
-    res = train_and_evaluate(X, y, processed_dir=str(B_DIR / "data" / "processed"))
-    winner = res["winner"]
+    # Motor semántico (mejora 3.1): degrada con gracia si sentence-transformers
+    # o el modelo no están disponibles (sin internet, sin instalar, etc.) — el
+    # resto del servicio sigue funcionando con bm25/tfidf.
+    try:
+        ESTADO["semantico"] = MotorSemantico(crudo)
+    except Exception:
+        logger.warning(
+            "Motor semántico no disponible (dependencias/modelo no instalados); "
+            "se omite motor=semantico en /buscar.", exc_info=True,
+        )
+        ESTADO["semantico"] = None
+
+    # --- Subcomponente B: modelo de riesgo (M1: cache en disco, no reentrena
+    # en cada arranque salvo que cambie el CSV fuente) ---
+    csv_path = B_DIR / "data" / "synthetic_data.csv"
+    processed_dir = B_DIR / "data" / "processed"
+    cache = _cargar_o_entrenar_modelo(csv_path, processed_dir)
+    winner = cache["winner"]
     ESTADO["winner"] = winner
-    ESTADO["pipe"] = res["fitted"][winner]
-    ESTADO["le"] = res["label_encoder"] if winner == "XGBoost" else None
+    ESTADO["pipe"] = cache["pipe"]
+    ESTADO["le"] = resolver_label_encoder(winner, cache["label_encoder"])
     ESTADO["lista"] = generar_lista_visitas(
-        df, ESTADO["pipe"], ESTADO["le"], processed_dir=str(B_DIR / "data" / "processed")
+        cache["df"], ESTADO["pipe"], ESTADO["le"], processed_dir=str(processed_dir)
     )
 
     # --- Subcomponente A: OCR (precargar field map) ---
@@ -191,7 +275,7 @@ def salud():
             },
             "buscador": {
                 "disponible": "bm25" in ESTADO,
-                "motores": ["bm25", "tfidf"],
+                "motores": _motores_disponibles(),
                 "n_documentos": len(ESTADO.get("textos", {})),
             },
             "modelo_riesgo": {
@@ -216,15 +300,27 @@ def salud():
 # Subcomponente C — Buscador
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get("/buscar", dependencies=REQUIERE_API_KEY)
-def buscar(q: str, motor: Literal["bm25", "tfidf"] = "bm25", k: int = 5):
+def buscar(q: str, motor: Literal["bm25", "tfidf", "semantico"] = "bm25", k: int = 5):
     """Busca notas de observación relevantes a la consulta `q`.
 
-    motor=bm25 (recomendado, ganó la evaluación) | tfidf. k = nº de resultados."""
+    motor=bm25 (recomendado, ganó la evaluación léxica) | tfidf | semantico
+    (embeddings Sentence-BERT en español; encuentra sinónimos que bm25/tfidf
+    no matchean, ej. "azúcar alta" ~ "diabetes"; 503 si el modelo no cargó).
+    k = nº de resultados."""
     if not q.strip():
         raise HTTPException(status_code=400, detail="La consulta 'q' no puede estar vacía.")
+    if len(q) > MAX_LONGITUD_CONSULTA:
+        raise HTTPException(
+            status_code=400,
+            detail=f"La consulta excede la longitud máxima permitida ({MAX_LONGITUD_CONSULTA} caracteres).",
+        )
     k = max(1, min(k, 50))
     if motor == "tfidf":
         ranking = ESTADO["tfidf"].buscar_tfidf(q, k=k)
+    elif motor == "semantico":
+        if not ESTADO.get("semantico"):
+            raise HTTPException(status_code=503, detail="Motor semántico no disponible en este servidor.")
+        ranking = ESTADO["semantico"].buscar_semantico(q, k=k)
     else:
         ranking = ESTADO["bm25"].buscar_bm25(q, k=k, k1=2.0, b=0.75)  # mejor (k1,b)
     return {
@@ -293,13 +389,22 @@ class FamiliaFeatures(BaseModel):
 @app.post("/riesgo/predecir", dependencies=REQUIERE_API_KEY)
 def predecir(fam: FamiliaFeatures):
     """Clasifica el nivel de riesgo (ALTO/MEDIO/BAJO) de UNA familia + prob. de ALTO."""
-    fila = pd.DataFrame([fam.model_dump()])[FEATURES]
-    pred, prob_alto = _predecir(ESTADO["pipe"], fila, ESTADO["le"])
-    return {
-        "modelo": ESTADO["winner"],
-        "nivel_riesgo": str(pred[0]),
-        "probabilidad_alto": round(float(prob_alto[0]), 4),
-    }
+    try:
+        fila = pd.DataFrame([fam.model_dump()])[FEATURES]
+        pred, prob_alto = _predecir(ESTADO["pipe"], fila, ESTADO["le"])
+        return {
+            "modelo": ESTADO["winner"],
+            "nivel_riesgo": str(pred[0]),
+            "probabilidad_alto": round(float(prob_alto[0]), 4),
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        # Item B-5: no propagar el detalle interno de la excepción (antes
+        # este endpoint no tenía try/except y devolvía un 500 genérico sin
+        # registrar nada útil en el log del servidor).
+        logger.exception("Error interno al predecir riesgo de una familia.")
+        raise HTTPException(500, "Error interno al calcular el riesgo. Intente nuevamente.")
 
 
 @app.get("/riesgo/lista", dependencies=REQUIERE_API_KEY)
@@ -354,33 +459,22 @@ async def ocr_procesar(archivo: UploadFile = File(...)):
     tmp_pdf.write_bytes(contenido)
 
     try:
-        # 1. Renderizar PDF a PNGs
-        page_paths = render_pdf(str(tmp_pdf), str(rendered_dir), dpi=180)
-
-        # 2. Normalizar y extraer
-        from preprocessor import normalize_page as _norm_page
-        import re as _re
-
-        def _page_num(p):
-            m = _re.search(r"-(\d+)\.png$", str(p))
-            return int(m.group(1)) if m else 0
-
-        pages_sorted = sorted(page_paths, key=_page_num)
-        pages_norm = [_norm_page(str(p), _page_num(p)) for p in pages_sorted]
-
-        resultado = extract_document(doc_id, pages_norm, field_map, str(processed_dir))
+        # Pipeline síncrono (subprocess pdftoppm + OpenCV) delegado a un hilo
+        # aparte: evita bloquear el event loop mientras dura (~8-10s/documento;
+        # ver docstring de _pipeline_ocr_sync).
+        resultado = await asyncio.to_thread(
+            _pipeline_ocr_sync, doc_id, tmp_pdf, rendered_dir, field_map, processed_dir
+        )
+        campos = resultado.get("fields", {})
 
         return {
             "doc_id": doc_id,
             "archivo_original": archivo.filename,
-            "n_paginas": len(pages_sorted),
-            "campos": resultado.get("fields", {}),
+            "n_paginas": len(resultado.get("pages", {})),
+            "campos": campos,
             "resumen": {
-                "total_campos": len(resultado.get("fields", {})),
-                "necesitan_revision": sum(
-                    1 for f in resultado.get("fields", {}).values()
-                    if f.get("needs_review")
-                ),
+                "total_campos": len(campos),
+                "necesitan_revision": sum(1 for f in campos.values() if f.get("needs_review")),
             },
         }
     except HTTPException:
@@ -448,27 +542,16 @@ async def ocr_procesar_cedula(archivo: UploadFile = File(...)):
     tmp_pdf.write_bytes(contenido)
 
     try:
-        import re as _re
-
-        def _page_num(p) -> int:
-            m = _re.search(r"-(\d+)\.png$", str(p))
-            return int(m.group(1)) if m else 0
-
-        # 1. Renderizar PDF → PNGs
-        page_paths = render_pdf(str(tmp_pdf), str(rendered_dir), dpi=180)
-
-        # 2. Normalizar cada página con el preprocesador del Subcomponente A
-        pages_sorted = sorted(page_paths, key=_page_num)
-        pages_norm = [normalize_page(str(p), _page_num(p)) for p in pages_sorted]
-
-        # 3. Extraer campos usando field_extractor.extract_document
-        resultado = extract_document(doc_id, pages_norm, field_map, str(processed_dir))
-
+        # Pipeline síncrono delegado a un hilo aparte (ver docstring de
+        # _pipeline_ocr_sync): evita bloquear el event loop ~8-10s/documento.
+        resultado = await asyncio.to_thread(
+            _pipeline_ocr_sync, doc_id, tmp_pdf, rendered_dir, field_map, processed_dir
+        )
         campos = resultado.get("fields", {})
         return {
             "doc_id": doc_id,
             "archivo_original": archivo.filename,
-            "n_paginas": len(pages_sorted),
+            "n_paginas": len(resultado.get("pages", {})),
             "campos": campos,
             "resumen": {
                 "total_campos": len(campos),
@@ -630,17 +713,23 @@ def predecir_lote(lote: LoteFamilias):
     if len(lote.familias) == 0:
         raise HTTPException(400, "La lista de familias no puede estar vacía.")
 
-    filas = pd.DataFrame([f.model_dump() for f in lote.familias])[FEATURES]
-    preds, probs = _predecir(ESTADO["pipe"], filas, ESTADO["le"])
+    try:
+        filas = pd.DataFrame([f.model_dump() for f in lote.familias])[FEATURES]
+        preds, probs = _predecir(ESTADO["pipe"], filas, ESTADO["le"])
 
-    return {
-        "modelo": ESTADO["winner"],
-        "total": len(preds),
-        "resultados": [
-            {"indice": i, "nivel_riesgo": str(preds[i]), "probabilidad_alto": round(float(probs[i]), 4)}
-            for i in range(len(preds))
-        ],
-    }
+        return {
+            "modelo": ESTADO["winner"],
+            "total": len(preds),
+            "resultados": [
+                {"indice": i, "nivel_riesgo": str(preds[i]), "probabilidad_alto": round(float(probs[i]), 4)}
+                for i in range(len(preds))
+            ],
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error interno al predecir riesgo en lote (n=%d).", len(lote.familias))
+        raise HTTPException(500, "Error interno al calcular el riesgo del lote. Intente nuevamente.")
 
 
 @app.get("/riesgo/modelo-info", dependencies=REQUIERE_API_KEY)
@@ -759,7 +848,7 @@ def corpus_estadisticas():
         "n_documentos": bm25.N,
         "avg_tokens_por_doc": round(bm25.avgdl, 1),
         "vocabulario_size": len(bm25.IDF_BM25),
-        "motores_disponibles": ["bm25", "tfidf"],
+        "motores_disponibles": _motores_disponibles(),
         "temas": temas,
     }
 
@@ -784,13 +873,21 @@ def obtener_documento(doc_id: str):
 
 @app.get("/buscar/metricas", dependencies=REQUIERE_API_KEY)
 def buscar_metricas():
-    """Ejecuta la evaluación IR de ambos motores con los 8 queries de prueba.
+    """Ejecuta la evaluación IR de los motores disponibles con los queries de prueba.
 
     Usa relevancia graduada (0-3) para nDCG. Los otros métricas usan binaria (>0).
+
+    LIMITACIÓN CONOCIDA (hallazgo C-5): el corpus (150 notas, 9 temas x 5 frases)
+    y estos qrels se derivan mecánicamente de la misma "verdad" (corpus_themes.json)
+    con la que se generaron las notas sintéticas. Esto infla las métricas respecto
+    a un corpus real anotado independientemente; se reporta como benchmark relativo
+    entre motores (para decidir cuál gana), no como desempeño absoluto esperado
+    en producción.
 
     Output: {
       "tfidf": {"P@5": 0.925, "R@5": 0.115, "MRR": 0.917, "MAP": 0.685, "nDCG@5": 0.520},
       "bm25":  {"P@5": 0.950, "R@5": 0.118, "MRR": 1.000, "MAP": 0.691, "nDCG@5": 0.569},
+      "semantico": {"P@5": 0.98, ...},
       "ganador": "bm25",
       "criterio": "nDCG@5",
       "n_queries_evaluados": 8
@@ -804,32 +901,39 @@ def buscar_metricas():
 
     qrels = json.loads(qrels_path.read_text(encoding="utf-8"))
     k = 5
+    n_corpus = len(ESTADO.get("textos", {})) or 150
 
     def _evaluar_motor(motor_obj, buscar_fn_name):
         buscar = getattr(motor_obj, buscar_fn_name)
         metricas_acum = {"P@5": [], "R@5": [], "MRR": [], "MAP": [], "nDCG@5": []}
         for query_text, rels in qrels.items():
             # Buscar en todo el corpus
-            ranking = buscar(query_text, k=150)  # todo el corpus
+            ranking = buscar(query_text, k=n_corpus)
             metricas_acum["P@5"].append(precision_at_k(ranking, qrels, query_text, k))
             metricas_acum["R@5"].append(recall_at_k(ranking, qrels, query_text, k))
             metricas_acum["MRR"].append(mrr(ranking, qrels, query_text))
             metricas_acum["MAP"].append(average_precision(ranking, qrels, query_text))
             metricas_acum["nDCG@5"].append(ndcg_at_k(ranking, qrels, query_text, k))
-        
+
         if not metricas_acum["P@5"]:
             return {}
 
         return {m: round(sum(vs)/len(vs), 4) for m, vs in metricas_acum.items()}
 
-    met_tfidf = _evaluar_motor(ESTADO["tfidf"], "buscar_tfidf")
-    met_bm25 = _evaluar_motor(ESTADO["bm25"], "buscar_bm25")
+    resultado = {
+        "tfidf": _evaluar_motor(ESTADO["tfidf"], "buscar_tfidf"),
+        "bm25": _evaluar_motor(ESTADO["bm25"], "buscar_bm25"),
+    }
+    if ESTADO.get("semantico"):
+        resultado["semantico"] = _evaluar_motor(ESTADO["semantico"], "buscar_semantico")
 
-    ganador = "bm25" if met_bm25.get("nDCG@5", 0) >= met_tfidf.get("nDCG@5", 0) else "tfidf"
+    ganador = max(
+        (m for m in resultado if resultado[m]),
+        key=lambda m: resultado[m].get("nDCG@5", 0),
+    )
 
     return {
-        "tfidf": met_tfidf,
-        "bm25": met_bm25,
+        **resultado,
         "ganador": ganador,
         "criterio": "nDCG@5",
         "n_queries_evaluados": len(qrels),
@@ -876,6 +980,12 @@ def corpus_reindexar(config: CorpusConfig):
     ESTADO["titulos"] = {d["id"]: d.get("titulo", "") for d in crudo}
     ESTADO["tfidf"] = MotorTFIDF(proc)
     ESTADO["bm25"] = MotorBM25(proc)
+    if ESTADO.get("semantico"):
+        try:
+            ESTADO["semantico"] = MotorSemantico(crudo)
+        except Exception:
+            logger.warning("No se pudo reindexar el motor semántico; se deshabilita.", exc_info=True)
+            ESTADO["semantico"] = None
 
     return {"ok": True, "n_documentos": len(proc), "mensaje": "Corpus reindexado exitosamente."}
 

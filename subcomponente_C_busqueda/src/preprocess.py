@@ -37,6 +37,14 @@ RE_HTML = re.compile(r'</?[a-zA-Z][^>]*>')
 CONSERVAR = {'no', 'nunca', 'sin', 'ni', 'muy', 'poco', 'nada', 'tampoco'}
 MIS_STOPWORDS = set(nlp.Defaults.stop_words) - CONSERVAR
 
+# Excepciones de lema: spaCy (es_core_news_sm) corrompe estas palabras de
+# dominio medico al lematizar; se corrigen aqui antes del filtro de
+# stopwords/longitud (hallazgo C-3).
+EXCEPCIONES_LEMA = {
+    "denguir": "dengue", "atencionir": "atencion",
+    "acir": "acido", "letrinar": "letrina",
+}
+
 _stemmer = SnowballStemmer('spanish')
 
 
@@ -72,6 +80,9 @@ def preprocesar(texto):
         if tok.is_punct or tok.is_space or tok.like_num or tok.is_stop:
             continue
         lema = _qd(tok.lemma_.lower())
+        lema = EXCEPCIONES_LEMA.get(lema, lema)
+        if ' ' in lema:
+            lema = lema.split()[0]
         if lema in MIS_STOPWORDS or len(lema) <= 2:
             continue
         out.append(lema)
