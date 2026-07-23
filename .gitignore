@@ -2,10 +2,12 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+# Logs del reentrenamiento mensual con datos reales (retrain_real.sh):
+logs/
 # Datos generados (se regeneran con synthetic_generator.py):
 subcomponente_B_ETL_Risk/data/families_full.json
 subcomponente_B_ETL_Risk/data/synthetic_data.csv
 subcomponente_B_ETL_Risk/data/processed/load_results.jsonl
-
+.env
 # Salidas generadas por pruebas del OCR (se regeneran con subcomponente_A_OCR/src/run_all.py):
 subcomponente_A_OCR/data/processed/

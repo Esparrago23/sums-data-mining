@@ -71,6 +71,20 @@ FEATURES_CATEGORICAS = [
 ]
 
 # Features BOOLEANAS → passthrough (ya son 0/1 una vez convertidas a bool).
+#
+# MEJORA — dos banderas de composición familiar (grupos_vulnerables.py) se
+# promovieron a features reales del modelo: `tiene_menor_1_anio` y
+# `tiene_mascota_sin_vacunar`. Antes SOLO eran un bolt-on que forzaba
+# prioridad_visita=URGENTE sin mover el score/probabilidad del modelo -- una
+# familia con un bebé sano salía "BAJO riesgo, 0% probabilidad" y a la vez
+# "VISITA URGENTE" en la misma respuesta, contradictorio de cara al usuario.
+# Ahora también influyen gradualmente en compute_risk (ver ese docstring) y
+# el modelo puede aprender su relación real con el riesgo, no solo una regla
+# fija. Las otras 3 banderas (embarazada, menor de 5 sin vacunas, adulto
+# mayor solo) siguen excluidas a propósito: son señales tiempo-sensibles de
+# salud pública que ameritan visita urgente SIN IMPORTAR el score agregado
+# (ver BANDERAS_CRITICAS en grupos_vulnerables.py), así que no tendría
+# sentido "diluirlas" en el promedio del modelo.
 FEATURES_BOOLEANAS = [
     "agua_entubada",
     "energia_electrica",
@@ -79,6 +93,8 @@ FEATURES_BOOLEANAS = [
     "fosa_septica",
     "vacunacion_completa",
     "seguridad_social_jefe",
+    "tiene_menor_1_anio",
+    "tiene_mascota_sin_vacunar",
 ]
 
 # Lista completa de features que entran al modelo (orden estable).
@@ -102,12 +118,13 @@ COLUMNAS_IDENTIFICACION = [
     "localidad",
 ]
 
-# Banderas de grupos vulnerables (grupos_vulnerables.py): igual que las de
-# identificación, NO son features del modelo -- describen la COMPOSICIÓN de la
-# familia (¿hay embarazada? ¿bebé? ¿adulto mayor solo? ¿mascota sin vacunar?),
-# información que se pierde al agregar a conteos/promedios para el modelo,
-# pero que SÍ se usa en risk_report.py para decidir prioridad de visita
-# independientemente del nivel de riesgo ML.
+# Banderas de grupos vulnerables (grupos_vulnerables.py): describen la
+# COMPOSICIÓN de la familia (¿hay embarazada? ¿bebé? ¿adulto mayor solo?
+# ¿mascota sin vacunar? ¿hacinamiento severo?), información que se pierde al
+# agregar a conteos/promedios para el modelo. Dos de ellas SÍ son features
+# del modelo hoy (ver nota en FEATURES_BOOLEANAS); todas se conservan aquí
+# como columnas de reporte porque risk_report.py las usa para motivo_prioridad
+# y para decidir qué familias entran a la lista priorizada de visitas.
 # Importado (no duplicado) de grupos_vulnerables.py -- una sola fuente de
 # verdad para no repetir el M2 del proyecto (lista duplicada que se
 # desincroniza si alguien agrega una bandera y olvida actualizar la otra).
@@ -139,14 +156,16 @@ def extract_synthetic(csv_path: str = DEFAULT_CSV) -> pd.DataFrame:
     return df
 
 
-def extract_from_db() -> pd.DataFrame:  # pragma: no cover - placeholder producción
+def extract_from_db() -> pd.DataFrame:
     """
-    Query real sobre `centro_medico_2026` (para cuando IMSS entregue datos reales).
-    Se deja como referencia; en desarrollo se usa `extract_synthetic`.
+    Extrae familias reales de `centro_medico_<año>` (la BD de sums-API) en
+    vez del CSV sintético. Implementado en db_extractor.py (consulta SQL +
+    agregación por núcleo familiar + calcular_banderas/compute_risk, mismas
+    funciones que usan los datos sintéticos). Ver credenciales/config en el
+    docstring de ese módulo (variables SUMS_DB_*).
     """
-    raise NotImplementedError(
-        "Extracción desde BD pendiente: usar extract_synthetic() en desarrollo."
-    )
+    from db_extractor import extract_from_db as _extract_from_db
+    return _extract_from_db()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -226,13 +245,30 @@ def build_xy(df: pd.DataFrame):
     return X, y
 
 
-def load_dataset(csv_path: str = DEFAULT_CSV):
+def load_dataset(csv_path: str = DEFAULT_CSV, fuente: str = "sintetico"):
     """
     Atajo end-to-end: extrae, limpia y devuelve (df_limpio, X, y).
     `df_limpio` conserva TODAS las columnas (incluye identificadores y score)
     para el reporte de visitas; X solo trae los features del modelo.
+
+    `fuente`:
+      - "sintetico" (default): lee `csv_path` (synthetic_generator.py).
+      - "real": extrae de la BD real de sums-API vía extract_from_db()
+        (ver db_extractor.py -- requiere variables de entorno SUMS_DB_*).
     """
-    df_raw = extract_synthetic(csv_path)
+    if fuente == "real":
+        df_raw = extract_from_db()
+        if df_raw.empty:
+            raise ValueError(
+                "extract_from_db() no devolvió familias -- revisa que haya cédulas "
+                "no-borrador con vivienda e integrantes registrados en la BD, y que "
+                "las variables SUMS_DB_* apunten a la BD correcta."
+            )
+    elif fuente == "sintetico":
+        df_raw = extract_synthetic(csv_path)
+    else:
+        raise ValueError(f"fuente debe ser 'sintetico' o 'real', recibido: {fuente!r}")
+
     df = clean_and_transform(df_raw)
     X, y = build_xy(df)
     return df, X, y

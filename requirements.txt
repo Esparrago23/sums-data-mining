@@ -45,3 +45,6 @@ python-multipart>=0.0.9  # >=0.0.9 corrige CVE-2024-24762 (ReDoS en parseo multi
 # --- Pruebas (B-6 / C-6: antes cero pruebas automatizadas) ---
 pytest>=8.0.0
 pytest-cov>=5.0.0
+
+# --- Extracción desde BD real de sums-API (db_extractor.py) ---
+psycopg2-binary>=2.9.9

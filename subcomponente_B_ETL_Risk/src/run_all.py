@@ -13,12 +13,17 @@ Ejecuta de punta a punta:
 
 Uso (desde la raíz del subcomponente):
     python src/run_all.py
+    python src/run_all.py --fuente real   # entrena con la BD real de sums-API
+                                            # en vez del CSV sintético (ver
+                                            # db_extractor.py para las
+                                            # variables de entorno SUMS_DB_*)
 
 Sale con código 0 si todo está en verde.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 
@@ -53,9 +58,18 @@ def _print_header(titulo: str) -> None:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Subcomponente B — pipeline ETL + Modelo de Riesgo")
+    parser.add_argument(
+        "--fuente", choices=["sintetico", "real"], default="sintetico",
+        help="'sintetico' (default) usa data/synthetic_data.csv; 'real' extrae de "
+             "la BD de sums-API vía db_extractor.py (variables SUMS_DB_*)."
+    )
+    args = parser.parse_args()
+
     # ─── 1. ETL ──────────────────────────────────────────────────────────────
     _print_header("FASE 1/4 — ETL (carga + limpieza + features)")
-    df, X, y = load_dataset()
+    print(f"Fuente de datos          : {args.fuente}")
+    df, X, y = load_dataset(fuente=args.fuente)
     print(f"Familias cargadas        : {len(df)}")
     print(f"Features del modelo      : {len(FEATURES)} "
           f"({len(FEATURES_NUMERICAS)} num, {len(FEATURES_CATEGORICAS)} cat, "

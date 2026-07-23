@@ -9,11 +9,25 @@ services:
     environment:
       - MINERIA_API_KEY=${MINERIA_API_KEY}
       - MINERIA_CORS_ORIGINS=${MINERIA_CORS_ORIGINS:-http://localhost:5173}
+      # Conexión a la BD real de sums-API (db_extractor.py, "run_all.py
+      # --fuente real") -- solo se usa al reentrenar con datos reales, no en
+      # el arranque normal de la API. Ver docstring de db_extractor.py.
+      - SUMS_DB_HOST=${SUMS_DB_HOST:-host.docker.internal}
+      - SUMS_DB_PORT=${SUMS_DB_PORT:-5433}
+      - SUMS_DB_USER=${SUMS_DB_USER:-postgres}
+      - SUMS_DB_PASS=${SUMS_DB_PASS:-postgres}
+      - SUMS_DB_NAME=${SUMS_DB_NAME:-}
     ports:
       - "8001:8001"
     volumes:
       - ./subcomponente_C_busqueda/data:/app/subcomponente_C_busqueda/data
       - ./subcomponente_B_ETL_Risk/data:/app/subcomponente_B_ETL_Risk/data
+    extra_hosts:
+      # host.docker.internal no existe por defecto en Docker Engine nativo de
+      # Linux (sí en Docker Desktop de Windows/Mac) -- necesario en la
+      # Raspberry Pi para que mineria-api llegue al Postgres de sums-API
+      # corriendo en el mismo host.
+      - "host.docker.internal:host-gateway"
     networks:
       - sumsnet
 

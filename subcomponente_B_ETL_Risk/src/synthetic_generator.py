@@ -545,9 +545,17 @@ def compute_risk(flat):
     sumaba +1 punto de 12 con un único umbral binario (>2.5 personas/cuarto),
     el mismo peso que cocinar con leña -- una familia con 2.6 personas/cuarto
     puntuaba IGUAL que una con 15. Ahora es una escala graduada de 0 a 3
-    puntos, alineada con UMBRAL_HACINAMIENTO_SEVERO de grupos_vulnerables.py,
-    y el score máximo posible sube de 12 a 14 (los umbrales de nivel se
-    reajustaron para conservar las mismas proporciones ~50% ALTO / ~25% MEDIO)."""
+    puntos, alineada con UMBRAL_HACINAMIENTO_SEVERO de grupos_vulnerables.py.
+
+    MEJORA — dos de las banderas de composición familiar (tiene_menor_1_anio,
+    tiene_mascota_sin_vacunar; ver grupos_vulnerables.py) ahora también suman
+    aquí, porque antes solo disparaban una alerta de prioridad sin mover el
+    score ni la probabilidad del modelo -- una familia con un bebé sano de
+    resto bien salía "BAJO riesgo, 0%" y "VISITA URGENTE" a la vez.
+
+    El score máximo posible subió de 12 a 16 en total (los umbrales de nivel
+    se reajustaron para conservar las mismas proporciones ~50% ALTO / ~25%
+    MEDIO)."""
     s = 0
     # Vivienda
     s += 1 if flat['material_piso'] == 'Tierra' else 0
@@ -576,9 +584,16 @@ def compute_risk(flat):
     s += 1 if flat['ingreso_nivel'] <= 1 else 0
     # Toxicomanías
     s += 1 if flat['count_toxicomanias'] > 0 else 0
+    # Composición familiar (grupos_vulnerables.py) que antes solo disparaba
+    # una alerta de prioridad sin mover el score -- ver MEJORA en ese módulo.
+    # Las banderas CRÍTICAS (embarazada, menor de 5 sin vacunas, adulto mayor
+    # solo) NO suman aquí a propósito: ya fuerzan URGENTE por su cuenta, y
+    # sumarlas también al score sería contar el mismo riesgo dos veces.
+    s += 1 if flat.get('tiene_menor_1_anio') else 0
+    s += 1 if flat.get('tiene_mascota_sin_vacunar') else 0
 
-    # Score máximo ahora es 14 (11 reglas binarias + hasta 3 de hacinamiento).
-    if s >= 7:
+    # Score máximo ahora es 16 (13 reglas binarias + hasta 3 de hacinamiento).
+    if s >= 8:
         nivel = 'ALTO'
     elif s >= 4:
         nivel = 'MEDIO'
@@ -612,6 +627,14 @@ def familia_to_flat(payload):
     vacunacion_completa = payload['vacunacion']['se_aplico_vacuna']
     seguridad_social_jefe = integrantes[0]['seguridad_social']
 
+    # Banderas de grupos vulnerables (embarazada, menor de 1 año, menor de 5
+    # sin vacunas, adulto mayor solo, mascota sin vacunar, hacinamiento
+    # severo): se calculan ANTES de compute_risk porque dos de ellas
+    # (tiene_menor_1_anio, tiene_mascota_sin_vacunar) ahora son insumo del
+    # score -- ver MEJORA en grupos_vulnerables.py y en compute_risk.
+    vacunas_aplicadas = payload['vacunacion']['vacunas']
+    banderas = calcular_banderas(integrantes, vacunas_aplicadas, vivienda=viv)
+
     flat = {
         'material_techo': viv['techo'],
         'material_paredes': viv['paredes'],
@@ -641,17 +664,11 @@ def familia_to_flat(payload):
         'colonia': fam['colonia'],
         'localidad': fam['localidad'],
     }
+    flat.update(banderas)
+
     score, nivel = compute_risk(flat)
     flat['score_total'] = score
     flat['nivel_riesgo'] = nivel
-
-    # Banderas de grupos vulnerables (embarazada, menor de 1 año, menor de 5
-    # sin vacunas, adulto mayor solo): se calculan de los integrantes ANTES de
-    # que se pierdan en la agregación de arriba. NO son features del modelo
-    # (no entran a etl_pipeline.FEATURES) -- se usan en risk_report.py para
-    # decidir prioridad de visita independiente del nivel de riesgo ML.
-    vacunas_aplicadas = payload['vacunacion']['vacunas']
-    flat.update(calcular_banderas(integrantes, vacunas_aplicadas, vivienda=payload['vivienda']))
 
     return flat
 

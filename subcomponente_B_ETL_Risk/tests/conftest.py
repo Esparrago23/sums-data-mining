@@ -130,6 +130,10 @@ def _generar_bloque_clase(rng: np.random.RandomState, clase: str, n: int) -> pd.
         "fosa_septica": rng.random_sample(size=n) < p_bool,
         "vacunacion_completa": rng.random_sample(size=n) < p_bool,
         "seguridad_social_jefe": rng.random_sample(size=n) < p_bool,
+        # Factores de riesgo (inverso, igual patrón que cocina_con_lena): más
+        # probables en clases de mayor riesgo. Ver MEJORA en compute_risk.
+        "tiene_menor_1_anio": rng.random_sample(size=n) >= p_bool,
+        "tiene_mascota_sin_vacunar": rng.random_sample(size=n) >= p_bool,
         "nivel_riesgo": [clase] * n,
     }
     return pd.DataFrame(data)

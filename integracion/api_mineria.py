@@ -83,7 +83,7 @@ from buscador_estructurado import buscar_estructurado  # noqa: E402
 from corpus_familias import construir_corpus_desde_familias  # noqa: E402
 from preprocess import preprocesar as _preprocesar_texto  # noqa: E402
 from etl_pipeline import load_dataset, FEATURES   # noqa: E402
-from grupos_vulnerables import motivo_prioridad, UMBRAL_HACINAMIENTO_SEVERO  # noqa: E402
+from grupos_vulnerables import motivo_prioridad, UMBRAL_HACINAMIENTO_SEVERO, BANDERAS_CRITICAS  # noqa: E402
 from model_trainer import train_and_evaluate, resolver_label_encoder  # noqa: E402
 from risk_report import (  # noqa: E402
     generar_lista_visitas, evaluar_riesgo_poblacional, resumen_por_zona, _predecir,
@@ -583,20 +583,28 @@ class FamiliaFeatures(BaseModel):
     seguridad_social_jefe: bool = False
 
     # ── Banderas de grupos vulnerables (grupos_vulnerables.py) ──────────────
-    # NO son features del modelo ML (no van en etl_pipeline.FEATURES, así que
-    # nunca llegan al pipeline entrenado) -- describen la COMPOSICIÓN de la
-    # familia, información que el modelo (entrenado sobre conteos/promedios
-    # agregados) no puede ver por diseño. El caller (app/web, que ya capturó
-    # los integrantes de la cédula) las provee directo; el endpoint las
-    # combina con el nivel de riesgo ML para decidir prioridad de visita.
+    # Describen la COMPOSICIÓN de la familia, información que se pierde al
+    # agregar a conteos/promedios. El caller (app/web, que ya capturó los
+    # integrantes de la cédula) las provee directo.
+    # tiene_embarazada / tiene_menor_5_sin_vacunas / tiene_adulto_mayor_solo
+    # NO son features del modelo (no están en etl_pipeline.FEATURES): son
+    # condiciones tiempo-sensibles de salud pública que fuerzan
+    # prioridad_visita="URGENTE" sin importar el nivel de riesgo ML (ver
+    # BANDERAS_CRITICAS) -- diluirlas en el promedio del modelo no tendría
+    # sentido, deben poder saltar la prioridad aunque el resto de la familia
+    # esté bien.
     tiene_embarazada: bool = False
+    # tiene_menor_1_anio y tiene_mascota_sin_vacunar SÍ son features del
+    # modelo hoy (ver etl_pipeline.FEATURES_BOOLEANAS): ya no fuerzan
+    # "URGENTE" por sí solas (un bebé sano o una mascota sin vacunar en una
+    # familia por lo demás estable no amerita visita urgente), pero SÍ suben
+    # el score/probabilidad de forma gradual.
     tiene_menor_1_anio: bool = False
     tiene_menor_5_sin_vacunas: bool = False
     tiene_adulto_mayor_solo: bool = False
     # Riesgo zoonótico: mascota en la vivienda sin vacunación al corriente
     # (rabia, parásitos) -- dato ya capturado en vivienda.perros_gatos_dentro
-    # / mascotas_vacunas_corrientes, antes no usado por el modelo ni por
-    # ninguna bandera.
+    # / mascotas_vacunas_corrientes.
     tiene_mascota_sin_vacunar: bool = False
 
     @field_validator("*", mode="before")
@@ -612,11 +620,14 @@ class FamiliaFeatures(BaseModel):
 @app.post("/riesgo/predecir", dependencies=REQUIERE_API_KEY)
 def predecir(fam: FamiliaFeatures):
     """Clasifica el nivel de riesgo (ALTO/MEDIO/BAJO) de UNA familia + prob. de ALTO,
-    y la combina con banderas de grupos vulnerables (embarazada/menor de 1 año/
-    menor de 5 sin vacunas/adulto mayor solo) en `prioridad_visita`: puede ser
-    "URGENTE" aunque el modelo prediga BAJO/MEDIO -- una familia con buena
-    vivienda pero con una embarazada sin control prenatal SÍ necesita visita
-    pronto, y el modelo (entrenado sobre agregados) no puede verlo por sí solo."""
+    y la combina con banderas de grupos vulnerables en `prioridad_visita`: puede ser
+    "URGENTE" aunque el modelo prediga BAJO/MEDIO -- pero SOLO si hay una bandera
+    CRÍTICA activa (embarazada, menor de 5 sin vacunas, adulto mayor solo,
+    hacinamiento severo -- ver BANDERAS_CRITICAS en grupos_vulnerables.py), no
+    cualquier bandera. tiene_menor_1_anio y tiene_mascota_sin_vacunar ya no
+    fuerzan URGENTE por sí solas: son features del modelo (suben el score de
+    forma gradual), no una alerta binaria -- una familia con un bebé sano de
+    resto bien no necesita visita urgente solo por eso."""
     try:
         datos = fam.model_dump()
         fila = pd.DataFrame([datos])[FEATURES]
@@ -632,13 +643,13 @@ def predecir(fam: FamiliaFeatures):
             "tiene_mascota_sin_vacunar": datos["tiene_mascota_sin_vacunar"],
             "tiene_hacinamiento_severo": personas_por_cuarto > UMBRAL_HACINAMIENTO_SEVERO,
         }
-        tiene_bandera = any(banderas.values())
+        tiene_bandera_critica = any(banderas[nombre] for nombre in BANDERAS_CRITICAS)
 
         return {
             "modelo": ESTADO["winner"],
             "nivel_riesgo": nivel_riesgo,
             "probabilidad_alto": round(float(prob_alto[0]), 4),
-            "prioridad_visita": "URGENTE" if (nivel_riesgo == "ALTO" or tiene_bandera) else "REGULAR",
+            "prioridad_visita": "URGENTE" if (nivel_riesgo == "ALTO" or tiene_bandera_critica) else "REGULAR",
             "motivo_prioridad": motivo_prioridad(banderas, nivel_riesgo_ml=nivel_riesgo),
         }
     except HTTPException:
