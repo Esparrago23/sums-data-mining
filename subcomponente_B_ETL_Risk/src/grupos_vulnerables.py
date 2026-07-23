@@ -40,6 +40,25 @@ para que la densidad severa pese más (ver compute_risk), pero además, igual
 que con embarazada/adulto mayor solo, el hacinamiento severo es un factor de
 riesgo respiratorio/de transmisión bien documentado que amerita prioridad de
 visita SIN IMPORTAR el puntaje agregado del modelo -- de ahí esta bandera.
+
+MEJORA — dos niveles de prioridad en vez de "cualquier bandera = urgente":
+al agregar más banderas (zoonótica, hacinamiento) se volvió evidente un
+problema de diseño: CUALQUIER bandera activa, sin importar qué tan leve,
+forzaba prioridad_visita="URGENTE" -- una familia con un bebé sano de resto
+bien salía "BAJO riesgo, 0% probabilidad" Y "VISITA URGENTE" en la misma
+respuesta, contradictorio de cara al usuario, y le restaba peso a la
+palabra "urgente" para los casos que sí lo son. Ahora las banderas se
+dividen en dos niveles (BANDERAS_CRITICAS abajo):
+  - CRÍTICAS (fuerzan URGENTE sin importar el score, como antes): embarazada,
+    menor de 5 sin vacunas, adulto mayor solo, hacinamiento severo -- son
+    condiciones tiempo-sensibles o estructurales de salud pública donde
+    esperar a que el score agregado suba no es aceptable.
+  - Solo-score (tiene_menor_1_anio, tiene_mascota_sin_vacunar): ya no fuerzan
+    URGENTE por sí solas -- un bebé sano o una mascota sin vacunar en una
+    familia por lo demás estable NO amerita visita urgente, pero SÍ debe
+    subir el riesgo agregado. Por eso se promovieron a features reales del
+    modelo (ver etl_pipeline.FEATURES_BOOLEANAS) y a puntos en compute_risk,
+    en vez de quedarse solo como una alerta que no movía nada.
 """
 from __future__ import annotations
 
@@ -47,6 +66,20 @@ EDAD_BEBE_MESES = 1  # "menor de 1 año" -> edad en años < 1
 EDAD_LIMITE_ESQUEMA_INFANTIL = 5  # VACUNAS_INFANTILES se aplican hasta esta edad
 EDAD_ADULTO_MAYOR = 60
 UMBRAL_HACINAMIENTO_SEVERO = 3.0  # personas/cuarto -- referencia CONEVAL/OMS de hacinamiento crítico
+
+# Banderas que fuerzan prioridad_visita="URGENTE" sin importar el nivel de
+# riesgo ML (condiciones tiempo-sensibles/estructurales de salud pública que
+# no deben esperar a que el score agregado suba). Las banderas de
+# BANDERAS_COLUMNAS que NO están aquí (tiene_menor_1_anio,
+# tiene_mascota_sin_vacunar) siguen calculándose y reportándose, pero solo
+# influyen en el riesgo de forma gradual a través del modelo (ver
+# etl_pipeline.FEATURES_BOOLEANAS), no como una alerta binaria.
+BANDERAS_CRITICAS = {
+    "tiene_embarazada",
+    "tiene_menor_5_sin_vacunas",
+    "tiene_adulto_mayor_solo",
+    "tiene_hacinamiento_severo",
+}
 
 
 def calcular_banderas(
@@ -71,7 +104,10 @@ def calcular_banderas(
       tiene_adulto_mayor_solo            -> todos los integrantes tienen 60+ años (nadie más joven en el hogar)
       tiene_mascota_sin_vacunar          -> mascota dentro de la vivienda sin esquema de vacunación al corriente
       tiene_hacinamiento_severo          -> personas/cuarto por encima de UMBRAL_HACINAMIENTO_SEVERO
-      requiere_atencion_prioritaria      -> OR de todas las anteriores (bandera resumen)
+      requiere_atencion_prioritaria      -> OR de las banderas CRÍTICAS (BANDERAS_CRITICAS) -- NO de
+                                            todas; tiene_menor_1_anio y tiene_mascota_sin_vacunar se
+                                            calculan y devuelven igual (para reporte/motivo), pero ya
+                                            no fuerzan esta bandera por sí solas (ver módulo).
     """
     vacunas_aplicadas = vacunas_aplicadas or []
     nombres_vacunados = {v.get("paciente") for v in vacunas_aplicadas if v.get("paciente")}
@@ -95,18 +131,18 @@ def calcular_banderas(
         personas_por_cuarto = vivienda.get("numero_habitantes", 0) / max(1, vivienda["numero_cuartos"])
         tiene_hacinamiento_severo = personas_por_cuarto > UMBRAL_HACINAMIENTO_SEVERO
 
-    return {
+    banderas = {
         "tiene_embarazada": tiene_embarazada,
         "tiene_menor_1_anio": tiene_menor_1_anio,
         "tiene_menor_5_sin_vacunas": tiene_menor_5_sin_vacunas,
         "tiene_adulto_mayor_solo": tiene_adulto_mayor_solo,
         "tiene_mascota_sin_vacunar": tiene_mascota_sin_vacunar,
         "tiene_hacinamiento_severo": tiene_hacinamiento_severo,
-        "requiere_atencion_prioritaria": (
-            tiene_embarazada or tiene_menor_1_anio or tiene_menor_5_sin_vacunas
-            or tiene_adulto_mayor_solo or tiene_mascota_sin_vacunar or tiene_hacinamiento_severo
-        ),
     }
+    banderas["requiere_atencion_prioritaria"] = any(
+        banderas[nombre] for nombre in BANDERAS_CRITICAS
+    )
+    return banderas
 
 
 BANDERAS_COLUMNAS = [
