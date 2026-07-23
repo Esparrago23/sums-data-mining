@@ -539,15 +539,29 @@ def generar_familia(rng, idx, suchiapa_ratio):
 
 def compute_risk(flat):
     """Reglas determinísticas de salud pública → (score, nivel_riesgo).
-    Mismo criterio que el plan de minería (Fase B-2)."""
+    Mismo criterio que el plan de minería (Fase B-2).
+
+    MEJORA — hacinamiento severo (ver grupos_vulnerables.py): antes esta regla
+    sumaba +1 punto de 12 con un único umbral binario (>2.5 personas/cuarto),
+    el mismo peso que cocinar con leña -- una familia con 2.6 personas/cuarto
+    puntuaba IGUAL que una con 15. Ahora es una escala graduada de 0 a 3
+    puntos, alineada con UMBRAL_HACINAMIENTO_SEVERO de grupos_vulnerables.py,
+    y el score máximo posible sube de 12 a 14 (los umbrales de nivel se
+    reajustaron para conservar las mismas proporciones ~50% ALTO / ~25% MEDIO)."""
     s = 0
     # Vivienda
     s += 1 if flat['material_piso'] == 'Tierra' else 0
     s += 1 if flat['material_techo'] in ('Lámina', 'Madera') else 0
     s += 1 if not flat['agua_entubada'] else 0
     s += 1 if not flat['energia_electrica'] else 0
-    # Hacinamiento
-    s += 1 if flat['personas_por_cuarto'] > 2.5 else 0
+    # Hacinamiento (escala graduada, máx. 3 puntos en vez de 1 binario)
+    ppc = flat['personas_por_cuarto']
+    if ppc > 5.0:
+        s += 3
+    elif ppc > 3.0:
+        s += 2
+    elif ppc > 2.0:
+        s += 1
     # Excretas
     s += 1 if flat['manejo_excretas'] != 'WC' else 0
     # Cocina con leña
@@ -563,9 +577,10 @@ def compute_risk(flat):
     # Toxicomanías
     s += 1 if flat['count_toxicomanias'] > 0 else 0
 
-    if s >= 6:
+    # Score máximo ahora es 14 (11 reglas binarias + hasta 3 de hacinamiento).
+    if s >= 7:
         nivel = 'ALTO'
-    elif s >= 3:
+    elif s >= 4:
         nivel = 'MEDIO'
     else:
         nivel = 'BAJO'

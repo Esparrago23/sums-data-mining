@@ -83,10 +83,11 @@ from buscador_estructurado import buscar_estructurado  # noqa: E402
 from corpus_familias import construir_corpus_desde_familias  # noqa: E402
 from preprocess import preprocesar as _preprocesar_texto  # noqa: E402
 from etl_pipeline import load_dataset, FEATURES   # noqa: E402
-from grupos_vulnerables import motivo_prioridad  # noqa: E402
+from grupos_vulnerables import motivo_prioridad, UMBRAL_HACINAMIENTO_SEVERO  # noqa: E402
 from model_trainer import train_and_evaluate, resolver_label_encoder  # noqa: E402
 from risk_report import (  # noqa: E402
     generar_lista_visitas, evaluar_riesgo_poblacional, resumen_por_zona, _predecir,
+    resumen_predicciones,
 )
 
 # ── Imports del Subcomponente A (OCR) ────────────────────────────────────────
@@ -307,6 +308,10 @@ async def lifespan(app: FastAPI):
     ESTADO["lista"] = generar_lista_visitas(
         cache["df"], ESTADO["pipe"], ESTADO["le"], processed_dir=str(processed_dir)
     )
+    # Distribución poblacional de riesgo (BAJO/MEDIO/ALTO) sobre TODO el
+    # dataset -- complementa a "lista" (que solo trae las familias ALTO) con
+    # el conteo global para un resumen tipo "X familias sanas, Y en riesgo".
+    ESTADO["distribucion"] = resumen_predicciones(cache["df"], ESTADO["pipe"], ESTADO["le"])
     # Riesgo de cúmulo geográfico (mejora: proxy honesto de "contagio" dado
     # que no existe un campo estructurado de enfermedad transmisible activa
     # -- ver docstring de risk_report.resumen_por_zona).
@@ -390,6 +395,7 @@ def salud():
             "/buscar", "/buscar/estructurado", "/buscar/familias", "/buscar/metricas", "/corpus/estadisticas",
             "/corpus/documento/{doc_id}", "/corpus/reindexar",
             "/riesgo/predecir", "/riesgo/predecir-lote", "/riesgo/lista", "/riesgo/zonas",
+            "/riesgo/distribucion",
             "/riesgo/metricas", "/riesgo/modelo-info", "/riesgo/graficas/{tipo}",
         ],
     }
@@ -617,12 +623,14 @@ def predecir(fam: FamiliaFeatures):
         pred, prob_alto = _predecir(ESTADO["pipe"], fila, ESTADO["le"])
         nivel_riesgo = str(pred[0])
 
+        personas_por_cuarto = datos["numero_habitantes"] / max(1, datos["numero_cuartos"])
         banderas = {
             "tiene_embarazada": datos["tiene_embarazada"],
             "tiene_menor_1_anio": datos["tiene_menor_1_anio"],
             "tiene_menor_5_sin_vacunas": datos["tiene_menor_5_sin_vacunas"],
             "tiene_adulto_mayor_solo": datos["tiene_adulto_mayor_solo"],
             "tiene_mascota_sin_vacunar": datos["tiene_mascota_sin_vacunar"],
+            "tiene_hacinamiento_severo": personas_por_cuarto > UMBRAL_HACINAMIENTO_SEVERO,
         }
         tiene_bandera = any(banderas.values())
 
@@ -680,6 +688,25 @@ def riesgo_por_zona():
     if resumen is None or len(resumen) == 0:
         raise HTTPException(status_code=404, detail="Resumen por zona no disponible.")
     return json.loads(resumen.to_json(orient="records", force_ascii=False))
+
+
+@app.get("/riesgo/distribucion", dependencies=REQUIERE_API_KEY)
+def riesgo_distribucion():
+    """Distribución de riesgo (BAJO/MEDIO/ALTO) sobre TODA la población,
+    para un resumen tipo "X familias sanas, Y en riesgo" (a diferencia de
+    `/riesgo/lista`, que solo trae las familias ALTO ya filtradas).
+
+    Output: {"n_total": 4000, "distribucion": {"BAJO": 2451, "MEDIO": 933,
+      "ALTO": 616}, "n_alto": 616}
+    """
+    distribucion = ESTADO.get("distribucion")
+    if not distribucion:
+        raise HTTPException(status_code=404, detail="Distribución no disponible. El modelo no ha sido entrenado.")
+    return {
+        "n_total": distribucion["n_total"],
+        "distribucion": distribucion["distribucion_predicha"],
+        "n_alto": distribucion["n_alto"],
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────

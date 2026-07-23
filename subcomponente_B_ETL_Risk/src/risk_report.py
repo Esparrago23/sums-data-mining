@@ -127,7 +127,7 @@ def generar_lista_visitas(
 
     # Columnas de identificación disponibles (las que existan en el df).
     id_cols = [c for c in COLUMNAS_IDENTIFICACION if c in out.columns]
-    extra_cols = [c for c in ["score_total"] if c in out.columns]
+    extra_cols = [c for c in ["score_total", "requiere_atencion_prioritaria"] if c in out.columns]
     motivo_col = ["motivo_prioridad"] if tiene_banderas else []
     cols_reporte = id_cols + ["riesgo_predicho", "probabilidad_alto"] + motivo_col + extra_cols
 
