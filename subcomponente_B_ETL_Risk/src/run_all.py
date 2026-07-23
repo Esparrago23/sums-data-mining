@@ -116,11 +116,21 @@ def main() -> int:
     for clave, ruta in {**paths, "lista_visitas": lista_path}.items():
         print(f"     - {clave}: {ruta}")
 
-    # (c) La lista priorizada no está vacía y está ordenada por probabilidad.
+    # (c) La lista priorizada no está vacía y está ordenada.
+    # El orden real (ver generar_lista_visitas) es primero por bandera de
+    # grupo vulnerable (requiere_atencion_prioritaria) y, dentro de cada
+    # grupo, por probabilidad de ALTO -- no es una sola columna ordenada de
+    # forma global, por eso se verifica con la misma clave compuesta.
     assert len(lista) > 0, "La lista priorizada de visitas está vacía."
-    probs = lista["probabilidad_alto"].tolist()
-    assert probs == sorted(probs, reverse=True), (
-        "La lista no está ordenada por probabilidad descendente."
+    if "requiere_atencion_prioritaria" in lista.columns:
+        clave = list(zip(
+            (~lista["requiere_atencion_prioritaria"]).tolist(),
+            (-lista["probabilidad_alto"]).tolist(),
+        ))
+    else:
+        clave = (-lista["probabilidad_alto"]).tolist()
+    assert clave == sorted(clave), (
+        "La lista no está ordenada por bandera + probabilidad descendente."
     )
     print(f"[OK] Lista priorizada no vacía ({len(lista)} familias) y ordenada.")
 

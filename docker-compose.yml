@@ -6,6 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: sums_mineria_api
+    environment:
+      - MINERIA_API_KEY=${MINERIA_API_KEY}
+      - MINERIA_CORS_ORIGINS=${MINERIA_CORS_ORIGINS:-http://localhost:5173}
+    ports:
+      - "8001:8001"
     volumes:
       - ./subcomponente_C_busqueda/data:/app/subcomponente_C_busqueda/data
       - ./subcomponente_B_ETL_Risk/data:/app/subcomponente_B_ETL_Risk/data

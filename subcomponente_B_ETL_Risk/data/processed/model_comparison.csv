@@ -1,4 +1,4 @@
 Modelo,Accuracy,F1_Macro,CV_F1_Macro_Media,CV_F1_Macro_Std
-XGBoost,0.9563,0.9576,0.9622,0.0038
-Random Forest,0.905,0.9082,0.897,0.0043
-Decision Tree,0.8163,0.8169,0.8213,0.0126
+XGBoost,0.9487,0.948,0.9379,0.0161
+Random Forest,0.87,0.8668,0.8526,0.0231
+Decision Tree,0.7688,0.7713,0.7747,0.0209

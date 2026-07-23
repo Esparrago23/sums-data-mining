@@ -36,11 +36,30 @@ def _ink_summary(binary_roi: np.ndarray) -> dict[str, float]:
     return {"ink_ratio": round(float(np.count_nonzero(binary_roi)) / float(binary_roi.size), 4)}
 
 
+def _imwrite_unicode(path: Path, imagen: np.ndarray) -> None:
+    """Escribe un PNG en `path` sin pasar por cv2.imwrite(str(path), ...).
+
+    cv2.imwrite falla EN SILENCIO en Windows para rutas con caracteres fuera
+    del codepage ANSI activo del proceso (ej. "Cédula", con acento) -- no
+    levanta excepción, simplemente no escribe el archivo, así que el bug
+    pasaba desapercibido hasta que algo más adelante intentaba LEER ese ROI
+    inexistente. Se evita codificando el PNG en memoria (cv2.imencode, que sí
+    funciona bien porque no toca el sistema de archivos) y escribiendo los
+    bytes con pathlib (usa las APIs de Windows de ancho completo / UTF-16,
+    sin ese límite) -- mismo truco que ya usa `_imread_gray` en
+    text_trainer.py/number_trainer.py para LEER ROIs con nombres acentuados.
+    """
+    ok, buffer = cv2.imencode(".png", imagen)
+    if not ok:
+        raise IOError(f"cv2.imencode no pudo codificar la imagen para {path}")
+    path.write_bytes(buffer.tobytes())
+
+
 def _save_roi(gray_roi: np.ndarray, out_dir: Path, field_id: str) -> str:
     _ensure_dir(out_dir)
     safe = field_id.replace(".", "__").replace("[", "_").replace("]", "")
     out = out_dir / f"{safe}.png"
-    cv2.imwrite(str(out), gray_roi)
+    _imwrite_unicode(out, gray_roi)
     return str(out)
 
 
@@ -49,7 +68,7 @@ def _save_binary_roi(binary_roi: np.ndarray, out_dir: Path, field_id: str) -> st
     safe = field_id.replace(".", "__").replace("[", "_").replace("]", "")
     out = out_dir / f"{safe}.png"
     # Invertimos para inspeccion humana: tinta negra sobre fondo blanco.
-    cv2.imwrite(str(out), 255 - binary_roi)
+    _imwrite_unicode(out, 255 - binary_roi)
     return str(out)
 
 

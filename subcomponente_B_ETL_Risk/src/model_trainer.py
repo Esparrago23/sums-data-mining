@@ -141,6 +141,18 @@ def build_models() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Selección del LabelEncoder según el modelo ganador
+# ─────────────────────────────────────────────────────────────────────────────
+
+def resolver_label_encoder(winner: str, label_encoder: LabelEncoder):
+    """Devuelve el LabelEncoder solo si el ganador es XGBoost (predice enteros
+    y necesita mapear de vuelta a string); RF/Decision Tree predicen strings
+    directamente, así que no necesitan encoder. Único punto de esta regla
+    (antes duplicada en api_mineria.py y risk_report.py)."""
+    return label_encoder if winner == "XGBoost" else None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Entrenamiento + evaluación comparativa
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -182,10 +194,13 @@ def train_and_evaluate(X, y, processed_dir: str = PROCESSED_DIR) -> dict:
         # Targets de entrenamiento: enteros para XGB, strings para el resto.
         y_tr = le.transform(y_train) if es_xgb else y_train.values
 
-        # CV estratificada 5-fold sobre el TRAIN (macro-F1).
-        y_cv = le.transform(y) if es_xgb else y.values
+        # CV estratificada 5-fold SOLO sobre el TRAIN (macro-F1). Antes se le
+        # pasaba (X, y) completos, que incluyen las filas de X_test: eso infla
+        # la métrica de CV con fuga de datos (el criterio de selección del
+        # ganador no se veía afectado porque usa Accuracy/F1 sobre X_test real,
+        # pero CV_F1_Macro_Media/Std reportados eran optimistas).
         cv_scores = cross_val_score(
-            pipe, X, y_cv, cv=skf, scoring="f1_macro", n_jobs=1
+            pipe, X_train, y_tr, cv=skf, scoring="f1_macro", n_jobs=1
         )
 
         # Ajuste final sobre el train y predicción sobre el test.

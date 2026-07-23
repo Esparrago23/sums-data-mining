@@ -10,12 +10,12 @@
   },
   "pages": {
     "1": [
-      {"id": "familia.nombre_informante", "type": "text", "bbox": [0.060, 0.255, 0.255, 0.315]},
-      {"id": "familia.rol_familiar", "type": "text", "bbox": [0.320, 0.255, 0.485, 0.315]},
-      {"id": "familia.domicilio", "type": "text", "bbox": [0.485, 0.255, 0.705, 0.315]},
-      {"id": "familia.localidad", "type": "text", "bbox": [0.705, 0.255, 0.790, 0.315]},
-      {"id": "familia.manzana", "type": "text", "bbox": [0.790, 0.255, 0.880, 0.315]},
-      {"id": "familia.vivienda", "type": "text", "bbox": [0.880, 0.255, 0.985, 0.315]},
+      {"id": "familia.nombre_informante", "type": "text", "bbox": [0.060, 0.285, 0.255, 0.309]},
+      {"id": "familia.rol_familiar", "type": "text", "bbox": [0.320, 0.285, 0.485, 0.315]},
+      {"id": "familia.domicilio", "type": "text", "bbox": [0.485, 0.286, 0.705, 0.315]},
+      {"id": "familia.localidad", "type": "text", "bbox": [0.705, 0.264, 0.790, 0.315]},
+      {"id": "familia.manzana", "type": "text", "bbox": [0.790, 0.268, 0.880, 0.315]},
+      {"id": "familia.vivienda", "type": "text", "bbox": [0.880, 0.270, 0.985, 0.315]},
 
       {"id": "vivienda.material_techo.concreto", "type": "checkbox", "bbox": [0.050, 0.385, 0.110, 0.430]},
       {"id": "vivienda.material_techo.madera", "type": "checkbox", "bbox": [0.110, 0.385, 0.190, 0.430]},

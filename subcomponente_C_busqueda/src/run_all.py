@@ -11,7 +11,11 @@ Orquesta el flujo completo y termina con codigo 0 si todo corre:
   6. Evalua ambos sistemas con las 5 metricas IR sobre los qrels y arma la
      tabla comparativa con barrido (k1, b).
   7. Verifica contra sklearn TfidfVectorizer que el ORDEN del ranking coincide.
-  8. ASSERTS: metricas en [0,1]; la tabla BM25 tiene filas; BM25 >= TF-IDF en nDCG.
+  8. ASSERTS: metricas en [0,1]; la tabla BM25 tiene filas; BM25 (mejor) >=
+     TF-IDF en las 5 metricas (P@5, R@5, MRR, MAP, nDCG@5).
+  9. (Opcional, best-effort) Evalua el motor semantico (embeddings
+     Sentence-BERT, embeddings_engine.MotorSemantico) con el mismo helper
+     evaluar() si la dependencia esta instalada; si no, lo reporta y sigue.
 
 Ejecutar:  python src/run_all.py   (maneja imports con sys.path)
 """
@@ -159,8 +163,33 @@ def main():
     assert tabla.loc[mejor, 'nDCG@5'] >= base_ndcg - 1e-9, \
         'BM25 (mejor) no alcanza a TF-IDF en nDCG@5'
     print(f'OK: BM25 mejor ({mejor}) >= TF-IDF en nDCG@5.')
+    # 8.d-g BM25 (mejor) empata o supera a TF-IDF en las OTRAS 4 metricas
+    # (mismo patron que 8.c; verifica la afirmacion completa "BM25 gana en
+    # las 5 metricas", no solo nDCG@5).
+    for metrica in ('P@5', 'R@5', 'MRR', 'MAP'):
+        assert tabla.loc[mejor, metrica] >= tabla.loc['TF-IDF', metrica] - 1e-9, \
+            f'BM25 (mejor) no alcanza a TF-IDF en {metrica}'
+        print(f'OK: BM25 mejor ({mejor}) >= TF-IDF en {metrica}.')
 
     banner('LISTO: run_all.py termino sin errores (codigo 0).')
+
+    # ----- 9 (opcional) | Motor semantico (embeddings) --------------------
+    try:
+        banner('9 | Motor semantico (embeddings Sentence-BERT) -- opcional')
+        import embeddings_engine as EE
+        with open(os.path.join(DATA, 'corpus_crudo_sums.json'), encoding='utf-8') as fh:
+            crudo = json.load(fh)
+        motor_semantico = EE.MotorSemantico(crudo)
+        met_sem = evaluar(motor_semantico.buscar_semantico, qrels, procesado)
+        tabla_sem = pd.DataFrame(
+            {**filas, 'Semantico (Sentence-BERT)': met_sem}
+        ).T[['P@5', 'R@5', 'MRR', 'MAP', 'nDCG@5']]
+        tabla_sem['mejora_nDCG_vs_TFIDF'] = tabla_sem['nDCG@5'] - base_ndcg
+        print(tabla_sem.round(3).to_string())
+    except Exception as exc:  # ImportError o cualquier fallo de carga del modelo
+        print('motor semantico no evaluado (dependencia opcional no disponible)')
+        print(f'  detalle: {exc!r}')
+
     return 0
 
 

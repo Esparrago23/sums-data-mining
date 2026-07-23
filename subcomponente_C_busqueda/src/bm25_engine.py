@@ -58,6 +58,7 @@ class MotorBM25:
     def __init__(self, corpus_procesado):
         self.corpus = corpus_procesado
         self.documentos = [d['tokens'] for d in corpus_procesado]
+        self.N = len(corpus_procesado)
         self.avgdl = avgdl(self.documentos)
         self.IDF_BM25 = idf_bm25(self.documentos)
 

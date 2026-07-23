@@ -1,0 +1,3 @@
+zona,total_familias,n_alto,pct_alto,n_con_bandera,pct_con_bandera,pct_alto_o_bandera,nivel_alerta_zona
+Zona A,10,8,0.8,0,0.0,0.8,ALTO
+Zona B,10,1,0.1,0,0.0,0.1,BAJO

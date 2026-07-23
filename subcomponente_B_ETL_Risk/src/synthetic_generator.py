@@ -44,6 +44,7 @@ from catalogos_sums import (
     APELLIDOS_CHIAPAS, NOMBRES_M, NOMBRES_F, LENGUAS_INDIGENAS_CHIAPAS,
     MOTIVOS_SALUD, OCUPACIONES_TEXTO,
 )
+from grupos_vulnerables import calcular_banderas
 
 REFERENCE_YEAR = 2026  # ancla determinística para calcular fechas de nacimiento
 
@@ -125,6 +126,125 @@ def dias_alimento(rng, vuln, base_alto):
     centro = base_alto - vuln * 4.0  # a más vuln, menos días
     val = round(rng.gauss(centro, 1.2))
     return max(0, min(7, val))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Observaciones sintéticas por familia (columna real `cedula.observaciones`,
+# VARCHAR(300) en la BD del SUMS). MISMO banco de frases que usan la app web
+# y móvil -- no se modifican, la consistencia de vocabulario entre repos
+# importa para el proyecto.
+# ─────────────────────────────────────────────────────────────────────────────
+LIMITE_OBSERVACIONES = 300  # cedula.observaciones VARCHAR(300) en sumsAPI
+
+FRASES_OBSERVACIONES = {
+    'seguimiento': [
+        "Se requiere visita de seguimiento la próxima semana.",
+        "Programar seguimiento en los próximos días.",
+        "Pendiente visita de control en una semana.",
+    ],
+    'enfermedad_rara': [
+        "Se observó un padecimiento inusual que requiere valoración médica.",
+        "Presenta un cuadro clínico poco común, referir a especialista.",
+        "Posible enfermedad rara, se sugiere estudio adicional.",
+    ],
+    'embarazo': [
+        "Hay una integrante embarazada, dar seguimiento prenatal.",
+        "Integrante en gestación, sin control prenatal reciente.",
+        "Embarazo detectado, canalizar a control prenatal.",
+    ],
+    'vacunas_pendientes': [
+        "Faltan dosis de vacunación, llevar cartilla la próxima visita.",
+        "Esquema de vacunación incompleto, traer cartilla pendiente.",
+        "Pendientes dosis de vacuna, verificar en siguiente visita.",
+    ],
+    'vivienda_mal_estado': [
+        "Vivienda con materiales precarios, requiere atención.",
+        "Vivienda en malas condiciones estructurales.",
+        "Techo y paredes en mal estado, riesgo para la familia.",
+    ],
+    'mascota_sin_vacunar': [
+        "Hay mascotas sin vacunación al corriente en el hogar.",
+        "Mascota dentro de la vivienda sin esquema de vacunación.",
+        "Perro/gato sin vacunas vigentes, riesgo zoonótico.",
+    ],
+}
+
+# Materiales de vivienda considerados precarios. El catálogo real (ver
+# catalogos_sums.CAT_MATERIAL_TECHO_PAREDES / CAT_MATERIAL_PISO) usa
+# 'Concreto o cemento' | 'Madera' | 'Lámina' para techo/paredes y agrega
+# 'Tierra' para piso; se incluye también 'Adobe' por robustez ante una futura
+# ampliación del catálogo (no rompe nada si nunca aparece).
+MATERIALES_PRECARIOS = {'Lámina', 'Madera', 'Tierra', 'Adobe'}
+
+# Probabilidades de inclusión de cada frase (ver docstring de generar_observaciones).
+P_ALTA = 0.85              # la bandera correspondiente SÍ aplica
+P_RUIDO = 0.08              # "ruido" realista cuando la bandera NO aplica (~0.06-0.10)
+P_SEGUIMIENTO = 0.25        # no depende de bandera: cualquier visita puede requerir seguimiento
+P_ENFERMEDAD_RARA = 0.05    # no depende de bandera: eventos raros por definición
+
+
+def _truncar_en_limite_oracion(texto, limite):
+    """Trunca `texto` a lo más `limite` caracteres sin cortar a la mitad de
+    una palabra: recorta en el último punto de oración dentro del límite; si
+    no hay ninguno, recorta en el último espacio."""
+    if len(texto) <= limite:
+        return texto
+    corte = texto.rfind('.', 0, limite)
+    if corte != -1:
+        return texto[:corte + 1]
+    corte = texto.rfind(' ', 0, limite)
+    if corte != -1:
+        return texto[:corte].rstrip()
+    return texto[:limite]
+
+
+def generar_observaciones(idx, banderas, colonia, localidad, material_techo, material_paredes):
+    """Genera el texto sintético de `observaciones` de UNA familia (columna
+    real `cedula.observaciones`, VARCHAR(300)), correlacionado con sus
+    banderas de grupos vulnerables (`grupos_vulnerables.calcular_banderas`) y
+    los materiales de su vivienda.
+
+    Usa el MISMO banco de frases por categoría que la app web/móvil (no se
+    modifica -- consistencia entre repos). Cada categoría se incluye con
+    probabilidad ALTA (~0.85) si su condición aplica, o con probabilidad BAJA
+    (~0.06-0.10, ruido realista -- notas reales a veces mencionan algo aunque
+    no haya bandera) si no aplica. 'seguimiento' (~0.25) y 'enfermedad_rara'
+    (~0.05) no dependen de ninguna bandera.
+
+    INDEPENDENCIA DEL RNG (crítico -- ver docstring del módulo/plan de la
+    tarea): usa su PROPIA instancia de `random.Random`, sembrada
+    determinísticamente a partir de `idx`, en vez del `rng` compartido que
+    `generar_familia` pasa secuencialmente a través de las 4000 familias en
+    `main()`. Si esta función consumiera números del `rng` compartido,
+    desplazaría el stream de aleatoriedad para TODAS las familias siguientes
+    (idx+1 en adelante), cambiando sus materiales/vacunas/etc. sin necesidad.
+    Con un RNG propio por idx, regenerar el dataset solo cambia el texto de
+    `observaciones` y nada más."""
+    rng_obs = random.Random(idx * 7919 + 42)
+
+    frases = [f"Visita domiciliaria en colonia {colonia}, {localidad}."]
+
+    vivienda_precaria = (
+        material_techo in MATERIALES_PRECARIOS or material_paredes in MATERIALES_PRECARIOS
+    )
+
+    # Orden ESTABLE (no cambia entre corridas): seguimiento, enfermedad_rara,
+    # embarazo, vacunas_pendientes, vivienda_mal_estado, mascota_sin_vacunar.
+    categorias = [
+        ('seguimiento', P_SEGUIMIENTO),
+        ('enfermedad_rara', P_ENFERMEDAD_RARA),
+        ('embarazo', P_ALTA if banderas.get('tiene_embarazada') else P_RUIDO),
+        ('vacunas_pendientes', P_ALTA if banderas.get('tiene_menor_5_sin_vacunas') else P_RUIDO),
+        ('vivienda_mal_estado', P_ALTA if vivienda_precaria else P_RUIDO),
+        ('mascota_sin_vacunar', P_ALTA if banderas.get('tiene_mascota_sin_vacunar') else P_RUIDO),
+    ]
+
+    for categoria, prob in categorias:
+        if chance(rng_obs, prob):
+            frases.append(rng_obs.choice(FRASES_OBSERVACIONES[categoria]))
+
+    texto = ' '.join(frases)
+    return _truncar_en_limite_oracion(texto, LIMITE_OBSERVACIONES)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -345,13 +465,54 @@ def generar_familia(rng, idx, suchiapa_ratio):
     numero_ext = str(rng.randint(1, 280))
     manzana = f"Mz. {rng.randint(1, 35)}"
 
+    # ── Valores que antes se calculaban INLINE dentro del dict `payload` ────
+    # Se extraen a variables, en el MISMO orden exacto en que ya se evaluaban
+    # (misma cantidad y secuencia de llamadas al `rng` COMPARTIDO -- ni una
+    # de más ni de menos), para poder calcular `banderas`/`observaciones`
+    # (que necesitan la vivienda YA completa) ANTES de construir `payload`
+    # sin desplazar el stream de aleatoriedad de ninguna familia siguiente.
+    fecha_registro = fecha_reciente(rng)
+    vivienda_referencia = f'Casa {rng.choice(["azul", "verde", "blanca", "de tabique"])}'
+    mascotas_vacunas_corrientes = perros_gatos and chance(rng, 0.6)
+    mascotas_esterilizadas = perros_gatos and chance(rng, 0.3)
+
+    vivienda_dict = {
+        'techo': material_techo,
+        'paredes': material_paredes,
+        'piso': material_piso,
+        'excretas': manejo_excretas,
+        'numero_cuartos': numero_cuartos,
+        'numero_habitantes': numero_habitantes,
+        'agua_entubada': agua_entubada,
+        'energia_electrica': energia_electrica,
+        'cocina_ubicacion': cocina_ubicacion,
+        'cocina_con_lena': cocina_con_lena,
+        'red_alcantarillado': red_alcantarillado,
+        'fosa_septica': fosa_septica,
+        'perros_gatos_dentro': perros_gatos,
+        'mascotas_vacunas_corrientes': mascotas_vacunas_corrientes,
+        'mascotas_esterilizadas': mascotas_esterilizadas,
+        'otros_animales': otros_animales,
+    }
+
+    # Banderas de grupos vulnerables (embarazada / menor de 1 año / menor de 5
+    # sin vacunas / adulto mayor solo / mascota sin vacunar) -- calculadas
+    # ANTES del payload para poder generar observaciones sintéticas
+    # correlacionadas con ellas. NO consumen `rng` (calcular_banderas es
+    # lógica determinística pura sobre datos ya generados), así que calcularlas
+    # aquí no afecta el stream de aleatoriedad.
+    banderas = calcular_banderas(integrantes, vacunas_aplicadas, vivienda=vivienda_dict)
+    observaciones = generar_observaciones(
+        idx, banderas, colonia, localidad, material_techo, material_paredes
+    )
+
     # ── Payload para captura-completa (estructura que lee el endpoint) ──────
     payload = {
         'unidad_salud_id': 1,
         'entrevistador_id': 1,
         'estado': 'validada',
-        'fecha_registro': fecha_reciente(rng),
-        'observaciones': f'Cédula sintética #{idx} (SUMS data-mining, contexto {localidad})',
+        'fecha_registro': fecha_registro,
+        'observaciones': observaciones,
         'familia': {
             'informante_nombre': jefe['nombre'],
             'rol_informante': jefe_rol,
@@ -360,26 +521,9 @@ def generar_familia(rng, idx, suchiapa_ratio):
             'colonia': colonia,
             'localidad': localidad,
             'manzana': manzana,
-            'vivienda_referencia': f'Casa {rng.choice(["azul", "verde", "blanca", "de tabique"])}',
+            'vivienda_referencia': vivienda_referencia,
         },
-        'vivienda': {
-            'techo': material_techo,
-            'paredes': material_paredes,
-            'piso': material_piso,
-            'excretas': manejo_excretas,
-            'numero_cuartos': numero_cuartos,
-            'numero_habitantes': numero_habitantes,
-            'agua_entubada': agua_entubada,
-            'energia_electrica': energia_electrica,
-            'cocina_ubicacion': cocina_ubicacion,
-            'cocina_con_lena': cocina_con_lena,
-            'red_alcantarillado': red_alcantarillado,
-            'fosa_septica': fosa_septica,
-            'perros_gatos_dentro': perros_gatos,
-            'mascotas_vacunas_corrientes': perros_gatos and chance(rng, 0.6),
-            'mascotas_esterilizadas': perros_gatos and chance(rng, 0.3),
-            'otros_animales': otros_animales,
-        },
+        'vivienda': vivienda_dict,
         'integrantes': integrantes,
         'vacunacion': {
             'se_aplico_vacuna': len(vacunas_aplicadas) > 0,
@@ -395,15 +539,29 @@ def generar_familia(rng, idx, suchiapa_ratio):
 
 def compute_risk(flat):
     """Reglas determinísticas de salud pública → (score, nivel_riesgo).
-    Mismo criterio que el plan de minería (Fase B-2)."""
+    Mismo criterio que el plan de minería (Fase B-2).
+
+    MEJORA — hacinamiento severo (ver grupos_vulnerables.py): antes esta regla
+    sumaba +1 punto de 12 con un único umbral binario (>2.5 personas/cuarto),
+    el mismo peso que cocinar con leña -- una familia con 2.6 personas/cuarto
+    puntuaba IGUAL que una con 15. Ahora es una escala graduada de 0 a 3
+    puntos, alineada con UMBRAL_HACINAMIENTO_SEVERO de grupos_vulnerables.py,
+    y el score máximo posible sube de 12 a 14 (los umbrales de nivel se
+    reajustaron para conservar las mismas proporciones ~50% ALTO / ~25% MEDIO)."""
     s = 0
     # Vivienda
     s += 1 if flat['material_piso'] == 'Tierra' else 0
     s += 1 if flat['material_techo'] in ('Lámina', 'Madera') else 0
     s += 1 if not flat['agua_entubada'] else 0
     s += 1 if not flat['energia_electrica'] else 0
-    # Hacinamiento
-    s += 1 if flat['personas_por_cuarto'] > 2.5 else 0
+    # Hacinamiento (escala graduada, máx. 3 puntos en vez de 1 binario)
+    ppc = flat['personas_por_cuarto']
+    if ppc > 5.0:
+        s += 3
+    elif ppc > 3.0:
+        s += 2
+    elif ppc > 2.0:
+        s += 1
     # Excretas
     s += 1 if flat['manejo_excretas'] != 'WC' else 0
     # Cocina con leña
@@ -419,9 +577,10 @@ def compute_risk(flat):
     # Toxicomanías
     s += 1 if flat['count_toxicomanias'] > 0 else 0
 
-    if s >= 6:
+    # Score máximo ahora es 14 (11 reglas binarias + hasta 3 de hacinamiento).
+    if s >= 7:
         nivel = 'ALTO'
-    elif s >= 3:
+    elif s >= 4:
         nivel = 'MEDIO'
     else:
         nivel = 'BAJO'
@@ -485,6 +644,15 @@ def familia_to_flat(payload):
     score, nivel = compute_risk(flat)
     flat['score_total'] = score
     flat['nivel_riesgo'] = nivel
+
+    # Banderas de grupos vulnerables (embarazada, menor de 1 año, menor de 5
+    # sin vacunas, adulto mayor solo): se calculan de los integrantes ANTES de
+    # que se pierdan en la agregación de arriba. NO son features del modelo
+    # (no entran a etl_pipeline.FEATURES) -- se usan en risk_report.py para
+    # decidir prioridad de visita independiente del nivel de riesgo ML.
+    vacunas_aplicadas = payload['vacunacion']['vacunas']
+    flat.update(calcular_banderas(integrantes, vacunas_aplicadas, vivienda=payload['vivienda']))
+
     return flat
 
 

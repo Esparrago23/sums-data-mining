@@ -14,6 +14,11 @@
 #                    ARM64 wheel: ver instrucciones en docker/Dockerfile.ocr
 #   paddleocr      : API de alto nivel para detección + reconocimiento (PP-OCRv4)
 #
+# ─── Motor de texto alternativo (evaluado, ver doctr_engine.py) ─────────────────────
+#   python-doctr   : motor de OCR general (Mindee), evaluado como alternativa a
+#                    Tesseract/PaddleOCR. Reutiliza PyTorch (ya instalado por
+#                    sentence-transformers en subcomponente_C_busqueda).
+#
 # ─── Fuzzy matching ──────────────────────────────────────────────────────────────────
 #   rapidfuzz      : similitud de cadenas (WRatio/partial_ratio) para corrección OCR
 #
@@ -35,6 +40,8 @@ scikit-learn>=1.5
 paddlepaddle>=2.6.2
 paddleocr>=2.7.3
 
+# --- Motor de texto alternativo (evaluado, ver doctr_engine.py) ---
+python-doctr[torch]>=0.9.0
+
 # --- Fuzzy matching para el mapper de coordenadas ---
 rapidfuzz>=3.6.1
-
